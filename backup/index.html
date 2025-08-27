@@ -1,0 +1,310 @@
+<!--
+TPR Digital Hub – Minimal Working Integration (Supabase wired to your real project)
+Project: tpr-digital-hub
+SUPABASE_URL: https://dvwmsclhfkaivhgvjvff.supabase.co
+Anon public: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2d21zY2xoZmthaXZoZ3ZqdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMTMyNzgsImV4cCI6MjA3MDY4OTI3OH0.5n0qDS_k2gVjvxCsNp6ZO_zvYTRoo5NE4zKWVMcJoq8
+NOTE: Do NOT expose service_role in any client code. Use it only in Edge Functions or trusted server env.
+-->
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TPR Digital Hub – Live Supabase Demo</title>
+    <!-- Tailwind via CDN for quick demo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS v2 -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto p-6">
+      <header class="mb-6 flex items-center justify-between">
+        <h1 class="text-2xl font-bold">TPR Digital Hub – เชื่อมต่อฐานข้อมูลจริง</h1>
+        <div>
+          <button id="btn-signout" class="hidden px-4 py-2 rounded-xl bg-gray-800 text-white">ออกจากระบบ</button>
+        </div>
+      </header>
+
+      <!-- Auth Card -->
+      <section id="auth-card" class="bg-white shadow rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-3">เข้าสู่ระบบ</h2>
+        <div class="grid gap-3 md:grid-cols-2">
+          <input id="email" type="email" placeholder="อีเมล" class="border rounded-xl p-3" />
+          <input id="password" type="password" placeholder="รหัสผ่าน" class="border rounded-xl p-3" />
+        </div>
+        <div class="mt-4 flex gap-3">
+          <button id="btn-login" class="px-4 py-2 rounded-xl bg-blue-600 text-white">เข้าสู่ระบบ</button>
+          <button id="btn-signup" class="px-4 py-2 rounded-xl bg-blue-100 text-blue-700">สมัครใช้งาน</button>
+        </div>
+        <p id="auth-status" class="mt-3 text-sm text-gray-600"></p>
+      </section>
+
+      <!-- App Content -->
+      <section id="app" class="hidden space-y-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <!-- Profile -->
+          <div class="bg-white shadow rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-3">โปรไฟล์</h3>
+            <div class="text-sm text-gray-700 space-y-1">
+              <div><span class="font-medium">User ID:</span> <span id="uid">-</span></div>
+              <div><span class="font-medium">Email:</span> <span id="uemail">-</span></div>
+            </div>
+          </div>
+
+          <!-- Roles & Permissions -->
+          <div class="bg-white shadow rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-3">สิทธิ์การใช้งาน (Roles)</h3>
+            <div id="roles" class="text-sm text-gray-700">กำลังโหลดสิทธิ์...</div>
+            <div class="mt-4">
+              <button id="btn-refresh-roles" class="px-3 py-2 bg-gray-100 rounded-xl">รีเฟรชสิทธิ์</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance – demo read the latest check-in/out of this user -->
+        <div class="bg-white shadow rounded-2xl p-6">
+          <h3 class="text-lg font-semibold mb-3">Attendance ล่าสุด (ตัวอย่างอ่านข้อมูลจริง)</h3>
+          <div id="attendance" class="text-sm text-gray-700">กำลังโหลดข้อมูล...</div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+      // === IMPORTANT ===
+      // Safe for client: URL + anon public key
+      const SUPABASE_URL = 'https://dvwmsclhfkaivhgvjvff.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2d21zY2xoZmthaXZoZ3ZqdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMTMyNzgsImV4cCI6MjA3MDY4OTI3OH0.5n0qDS_k2gVjvxCsNp6ZO_zvYTRoo5NE4zKWVMcJoq8';
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      });
+
+      const $ = (id) => document.getElementById(id);
+      const authCard = $('auth-card');
+      const app = $('app');
+      const btnLogin = $('btn-login');
+      const btnSignup = $('btn-signup');
+      const btnSignout = $('btn-signout');
+      const authStatus = $('auth-status');
+      const uid = $('uid');
+      const uemail = $('uemail');
+      const rolesBox = $('roles');
+      const attendanceBox = $('attendance');
+      const btnRefreshRoles = $('btn-refresh-roles');
+
+      // Handle auth state
+      supabase.auth.onAuthStateChange(async (_evt, session) => {
+        if (session?.user) {
+          authCard.classList.add('hidden');
+          app.classList.remove('hidden');
+          btnSignout.classList.remove('hidden');
+          uid.textContent = session.user.id;
+          uemail.textContent = session.user.email;
+          await refreshRoles();
+          await loadAttendance();
+        } else {
+          authCard.classList.remove('hidden');
+          app.classList.add('hidden');
+          btnSignout.classList.add('hidden');
+        }
+      });
+
+      btnLogin.addEventListener('click', async () => {
+        const email = $('email').value.trim();
+        const password = $('password').value.trim();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        authStatus.textContent = error ? `เข้าสู่ระบบล้มเหลว: ${error.message}` : 'เข้าสู่ระบบสำเร็จ';
+      });
+
+      btnSignup.addEventListener('click', async () => {
+        const email = $('email').value.trim();
+        const password = $('password').value.trim();
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        authStatus.textContent = error ? `สมัครล้มเหลว: ${error.message}` : 'สมัครสำเร็จ! โปรดตรวจสอบอีเมลเพื่อยืนยันบัญชี';
+      });
+
+      btnSignout.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+      });
+
+      btnRefreshRoles.addEventListener('click', refreshRoles);
+
+      async function refreshRoles() {
+        rolesBox.textContent = 'กำลังโหลดสิทธิ์...';
+        const { data: user } = await supabase.auth.getUser();
+        if (!user?.user) {
+          rolesBox.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+          return;
+        }
+        // Read roles from a table "user_permissions" (recommended) with RLS to let users read only their own row(s)
+        const { data, error } = await supabase
+          .from('user_permissions')
+          .select('role, sub_role, manually_overridden, created_at')
+          .eq('user_id', user.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          rolesBox.innerHTML = `<span class="text-red-600">โหลดสิทธิ์ไม่สำเร็จ: ${error.message}</span>`;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          rolesBox.innerHTML = 'ยังไม่มีการกำหนดสิทธิ์';
+          return;
+        }
+
+        rolesBox.innerHTML = data
+          .map((r) => `
+            <div class="border rounded-xl p-3 mb-2">
+              <div><span class="font-medium">role:</span> ${r.role}</div>
+              <div><span class="font-medium">sub_role:</span> ${r.sub_role ?? '-'}</div>
+              <div><span class="font-medium">manual:</span> ${r.manually_overridden ? 'yes' : 'no'}</div>
+              <div class="text-xs text-gray-500">updated: ${new Date(r.created_at).toLocaleString()}</div>
+            </div>
+          `)
+          .join('');
+      }
+
+      async function loadAttendance() {
+        attendanceBox.textContent = 'กำลังโหลด...';
+        const { data: user } = await supabase.auth.getUser();
+        if (!user?.user) {
+          attendanceBox.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+          return;
+        }
+        // Example: read latest 5 attendance rows for current user from table "attendance"
+        const { data, error } = await supabase
+          .from('attendance')
+          .select('check_type, check_time, note')
+          .eq('user_id', user.user.id)
+          .order('check_time', { ascending: false })
+          .limit(5);
+
+        if (error) {
+          attendanceBox.innerHTML = `<span class="text-red-600">โหลดข้อมูลไม่สำเร็จ: ${error.message}</span>`;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          attendanceBox.textContent = 'ไม่มีข้อมูล';
+          return;
+        }
+
+        attendanceBox.innerHTML = `
+          <ul class="list-disc pl-6">
+            ${data
+              .map(
+                (a) => `<li>
+                  <span class="font-medium">${a.check_type}</span>
+                  – ${new Date(a.check_time).toLocaleString()} ${a.note ? `(<span class="italic">${a.note}</span>)` : ''}
+                </li>`
+              )
+              .join('')}
+          </ul>
+        `;
+      }
+    </script>
+  </body>
+</html>
+
+
+<!-- ========================= SERVER SIDE (Edge Function) =========================
+Create a secure endpoint to update roles with service_role. Save as:
+/supabase/functions/assign-role/index.ts
+
+Deploy with: supabase functions deploy assign-role
+Invoke from admin UI with an auth bearer of a signed-in admin (or protect via RLS/Checks).
+-->
+
+<script type="text/plain" data-filename="supabase/functions/assign-role/index.ts">
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Read service role key from environment – NEVER ship to client!
+const SUPABASE_URL = 'https://dvwmsclhfkaivhgvjvff.supabase.co'
+const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE')!
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+
+serve(async (req) => {
+  try {
+    // Optional: verify the caller is an admin by checking JWT or custom header
+    // Here we keep it simple – you should harden this before production
+
+    const body = await req.json()
+    const { user_id, role, sub_role, manually_overridden = true } = body
+
+    if (!user_id || !role) {
+      return new Response(JSON.stringify({ error: 'user_id and role are required' }), { status: 400 })
+    }
+
+    const { error } = await supabase
+      .from('user_permissions')
+      .insert({ user_id, role, sub_role, manually_overridden })
+
+    if (error) throw error
+
+    return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500 })
+  }
+})
+</script>
+
+<!-- ========================= DATABASE / RLS POLICIES =========================
+Run these SQL snippets in Supabase SQL editor to secure tables for the client app.
+Adjust table/column names if they differ from your existing schema.
+-->
+<script type="text/plain" data-filename="supabase/sql/rls.sql">
+-- Enable RLS
+alter table public.user_permissions enable row level security;
+alter table public.attendance enable row level security;
+
+-- Policies: user_permissions – users can read their own rows
+create policy "users_can_read_own_permissions"
+  on public.user_permissions
+  for select
+  using (auth.uid() = user_id);
+
+-- Only service_role (Edge Function) can insert role rows
+create policy "only_service_role_can_insert_permissions"
+  on public.user_permissions
+  for insert to authenticated
+  with check (false);
+
+-- Attendance: users can read their own attendance
+create policy "users_can_read_own_attendance"
+  on public.attendance
+  for select
+  using (auth.uid() = user_id);
+</script>
+
+<!-- ========================= ENVIRONMENT (.env) =========================
+Create a local .env (for Edge Functions or server) – NEVER commit service_role publicly.
+-->
+<script type="text/plain" data-filename=".env.example">
+# Client-safe (can be in .env.local for frontend builds)
+VITE_SUPABASE_URL=https://dvwmsclhfkaivhgvjvff.supabase.co
+VITE_SUPABASE_ANON=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2d21zY2xoZmthaXZoZ3ZqdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMTMyNzgsImV4cCI6MjA3MDY4OTI3OH0.5n0qDS_k2gVjvxCsNp6ZO_zvYTRoo5NE4zKWVMcJoq8
+
+# Server-only
+SUPABASE_SERVICE_ROLE=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2d21zY2xoZmthaXZoZ3ZqdmZmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTExMzI3OCwiZXhwIjoyMDcwNjg5Mjc4fQ.vmmH7wkMGBBqCdAv0TVp9psxZ9QKraVK6rsAzuO_rrQ
+SUPABASE_JWT_SECRET=WJpMbZAXvp8s9eNr7gLFsQn+4Vb9y8Ai2AGRSWFl07/GYaY+hkMDVqRRB1SDZlR2efdwFZN6bVK+8zjU9J1oGg==
+</script>
+
+<!-- ========================= HOW TO RUN =========================
+1) Copy this HTML file to your hosting (e.g., Firebase Hosting). It uses your real Supabase URL + anon key already.
+2) Create the Edge Function using the provided TypeScript file. Deploy with the Supabase CLI:
+   supabase functions deploy assign-role
+   supabase secrets set SUPABASE_SERVICE_ROLE=... (paste your service role)
+3) Apply the RLS SQL in the Supabase SQL editor to enforce security.
+4) Test: Sign up, confirm email, sign in, and verify Roles & Attendance read from your live DB.
+5) Build your Admin UI to call the Edge Function to assign roles.
+-->
+

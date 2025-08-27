@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Accounting Manager Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; --violet:#a78bfa; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.72rem; }
+    .kpi{ font-size:1.3rem; font-weight:700; }
+    .bar{ height:10px; border-radius:999px; background:#e2e8f0; overflow:hidden }
+    .bar > i{ display:block; height:100%; background:var(--brand) }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .badge{ padding:.2rem .5rem; font-size:.7rem; border-radius:999px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Header -->
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">AC</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">แดชบอร์ดฝ่ายบัญชี • Financial Control Hub</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option value="month" selected>เดือนนี้</option>
+          <option value="quarter">ไตรมาสนี้</option>
+          <option value="year">ปีนี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- 1. AR & Invoicing -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">1) ลูกหนี้และการออกใบแจ้งหนี้ (Accounts Receivable & Invoicing)</h2>
+        <span class="text-xs text-slate-500">อัปเดต: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- AR Aging -->
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">A/R Aging Summary</div>
+            <div class="flex items-center gap-2">
+              <button id="btn-ar-csv" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs">Export CSV</button>
+              <button class="text-sky-600 text-sm" data-drill="ar">ดูรายละเอียด →</button>
+            </div>
+          </div>
+          <div class="h-56"><canvas id="chartARAging"></canvas></div>
+          <div class="grid grid-cols-3 gap-2 mt-3 text-sm">
+            <div class="p-2 rounded-lg border border-slate-200">
+              <div class="text-slate-500">0–30 วัน</div>
+              <div class="kpi mono" id="ar030">0</div>
+            </div>
+            <div class="p-2 rounded-lg border border-slate-200">
+              <div class="text-slate-500">31–60 วัน</div>
+              <div class="kpi mono" id="ar3160">0</div>
+            </div>
+            <div class="p-2 rounded-lg border border-slate-200">
+              <div class="text-slate-500">61+ วัน</div>
+              <div class="kpi mono text-red-600" id="ar61">0</div>
+            </div>
+          </div>
+        </div>
+        <!-- WIP & Draft invoices -->
+        <div class="card lg:col-span-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-slate-500 text-sm">Work-in-Progress (ไม่วางบิล)</div>
+              <div class="kpi mono mt-1" id="wipValue">฿0</div>
+              <div class="text-xs text-slate-500">รวมชั่วโมงและค่าใช้จ่ายที่ยังไม่ออกใบแจ้งหนี้</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-slate-500 text-sm">Retainer Balances (คงเหลือ)</div>
+              <div class="kpi mono mt-1" id="retainerValue">฿0</div>
+              <div class="text-xs text-slate-500">ยอดเงินมัดจำของลูกค้าตามสัญญา</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold">Draft Invoices for Review</div>
+              <button class="text-sky-600 text-sm" data-drill="draft">ดูทั้งหมด →</button>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="text-slate-500">
+                <tr><th class="text-left py-2">โครงการ</th><th class="text-left py-2">ลูกค้า</th><th class="text-right py-2">มูลค่า</th><th class="text-right py-2">สถานะ</th></tr>
+              </thead>
+              <tbody id="tblDraft"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Retainer table -->
+        <div class="card lg:col-span-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Retainer – รายโครงการ</div>
+            <button class="text-sky-600 text-sm" data-drill="retainer">รายละเอียด →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">โครงการ</th><th class="text-right py-2">คงเหลือ</th></tr>
+            </thead>
+            <tbody id="tblRetainer"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. AP & Expenses -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">2) เจ้าหนี้และค่าใช้จ่าย (Accounts Payable & Expenses)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">A/P Aging Summary</div>
+            <button class="text-sky-600 text-sm" data-drill="ap">ดูรายละเอียด →</button>
+          </div>
+          <div class="h-56"><canvas id="chartAPAging"></canvas></div>
+          <div class="grid grid-cols-3 gap-2 mt-3 text-sm">
+            <div class="p-2 rounded-lg border border-slate-200"><div class="text-slate-500">0–30 วัน</div><div class="kpi mono" id="ap030">0</div></div>
+            <div class="p-2 rounded-lg border border-slate-200"><div class="text-slate-500">31–60 วัน</div><div class="kpi mono" id="ap3160">0</div></div>
+            <div class="p-2 rounded-lg border border-slate-200"><div class="text-slate-500">61+ วัน</div><div class="kpi mono text-red-600" id="ap61">0</div></div>
+          </div>
+        </div>
+        <div class="card lg:col-span-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Bills Due for Payment (กำหนดจ่ายเร็วๆ นี้)</div>
+            <button class="text-sky-600 text-sm" data-drill="bills">ดูทั้งหมด →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">ผู้ขาย</th><th class="text-left py-2">คำอธิบาย</th><th class="text-right py-2">ครบกำหนด</th><th class="text-right py-2">ยอด</th></tr>
+            </thead>
+            <tbody id="tblBills"></tbody>
+          </table>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Employee Expenses to Reimburse</div>
+          <ul id="listReimb" class="space-y-2 text-sm"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Financial Health -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">3) ภาพรวมสถานะการเงินและบัญชี (Financial Health & Accounting Overview)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Profit &amp; Loss Snapshot</div>
+            <button class="text-sky-600 text-sm" data-drill="pl">ดู P&amp;L แบบเต็ม →</button>
+          </div>
+          <div class="h-56"><canvas id="chartPL"></canvas></div>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Balance Sheet Summary</div>
+          <div class="h-56"><canvas id="chartBS"></canvas></div>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Cash Flow Forecast</div>
+          <div class="h-56"><canvas id="chartCF"></canvas></div>
+          <div class="text-xs text-slate-500 mt-1">เงินสดคงเหลือ • คาดการณ์ 8 สัปดาห์ข้างหน้า</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Reconciliation & Closing -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">4) การกระทบยอดและการปิดบัญชี (Reconciliation & Closing)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-7">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Bank Reconciliation Status</div>
+            <button class="text-sky-600 text-sm" data-drill="bank">ดูทั้งหมด →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">บัญชี</th><th class="text-left py-2">ธนาคาร</th><th class="text-right py-2">งบดุลล่าสุด</th><th class="text-right py-2">รายการค้างตรวจ</th><th class="text-right py-2">สถานะ</th></tr>
+            </thead>
+            <tbody id="tblBank"></tbody>
+          </table>
+        </div>
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">Month‑End Closing Checklist</div>
+          <ul id="listChecklist" class="space-y-2 text-sm"></ul>
+          <div class="mt-3">
+            <div class="text-xs text-slate-500 mb-1">ความคืบหน้า</div>
+            <div class="bar"><i id="chkProgress" style="width:0%"></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drill Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: Accounting
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // -------- Mock Data
+    const arAging = { labels:['0–30','31–60','61+'], values:[1250000, 820000, 460000] };
+    const apAging = { labels:['0–30','31–60','61+'], values:[770000, 420000, 180000] };
+    const wip = 2150000;
+    const retainerTotal = 950000;
+    const draftInvoices = [
+      {project:'P-204 สะพานแม่น้ำ', client:'BKK Infra', amount: 320000, status:'รอตรวจ'},
+      {project:'P-318 อาคารสำนักงาน', client:'Q Corp', amount: 285000, status:'รออนุมัติ PM'},
+      {project:'P-221 ถนนสายเหนือ', client:'NHA', amount: 410000, status:'รอตรวจ'},
+    ];
+    const retainers = [
+      {project:'P-204 สะพานแม่น้ำ', remain: 300000},
+      {project:'P-318 อาคารสำนักงาน', remain: 250000},
+      {project:'P-221 ถนนสายเหนือ', remain: 400000},
+    ];
+    const billsDue = [
+      {vendor:'Cloud Co.', desc:'โฮสติ้ง/ไลเซนส์', due:'28 ส.ค.', amount: 42000},
+      {vendor:'Print House', desc:'พิมพ์แบบโครงการ', due:'29 ส.ค.', amount: 18000},
+      {vendor:'Travel Co.', desc:'ตั๋ว/ที่พัก ทีมงาน', due:'31 ส.ค.', amount: 76000},
+    ];
+    const reimburse = [
+      {who:'ศศิธร', what:'ค่าน้ำมันไซต์งาน', amount: 1200, status:'approved'},
+      {who:'ธนวัต', what:'อุปกรณ์ชั่วคราว', amount: 980, status:'approved'},
+      {who:'มยุรี', what:'ค่าส่งเอกสาร', amount: 320, status:'pending'},
+    ];
+    const pl = { labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.'],
+                 revenue:[900, 1040, 980, 1200, 1100, 1280],
+                 cogs:[-520, -590, -560, -640, -600, -710],
+                 opex:[-230, -250, -240, -260, -255, -270] };
+    const bs = { labels:['Assets','Liabilities','Equity'], values:[8200, 3900, 4300] };
+    const cf = { labels:['ส.1','ส.2','ส.3','ส.4','ส.5','ส.6','ส.7','ส.8'],
+                 cash:[3.2,3.1,3.5,3.8,3.6,4.0,4.2,4.1] };
+    const bank = [
+      {acc:'001‑1‑23456‑7', bank:'SCB', bal:'฿ 1.28M', openItems:2, status:'ค้างตรวจ'},
+      {acc:'111‑2‑88888‑1', bank:'BBL', bal:'฿ 0.96M', openItems:0, status:'ครบถ้วน'},
+      {acc:'222‑0‑77777‑3', bank:'KBANK', bal:'฿ 2.41M', openItems:5, status:'ค้างตรวจ'},
+    ];
+    const checklist = [
+      {text:'A/R ทั้งหมดสร้างและส่งแล้ว', done:false},
+      {text:'A/P ทั้งหมดบันทึกแล้ว', done:false},
+      {text:'กระทบยอดธนาคารทุกบัญชี', done:false},
+      {text:'ตัดค่าเสื่อม/ปรับปรุงสิ้นเดือน', done:true},
+      {text:'ปิดงวดและล็อกเอกสาร', done:false},
+    ];
+
+    // -------- Render helpers
+    function baht(n){ return '฿ ' + n.toLocaleString('th-TH'); }
+    function renderARAging(){
+      document.getElementById('ar030').textContent = baht(arAging.values[0]);
+      document.getElementById('ar3160').textContent = baht(arAging.values[1]);
+      document.getElementById('ar61').textContent = baht(arAging.values[2]);
+      new Chart(document.getElementById('chartARAging'), {
+        type:'doughnut',
+        data:{ labels: arAging.labels, datasets:[{ data: arAging.values, backgroundColor:['#0ea5e9','#f59e0b','#ef4444'] }] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'70%' }
+      });
+    }
+    function renderAPAging(){
+      document.getElementById('ap030').textContent = baht(apAging.values[0]);
+      document.getElementById('ap3160').textContent = baht(apAging.values[1]);
+      document.getElementById('ap61').textContent = baht(apAging.values[2]);
+      new Chart(document.getElementById('chartAPAging'), {
+        type:'doughnut',
+        data:{ labels: apAging.labels, datasets:[{ data: apAging.values, backgroundColor:['#0ea5e9','#f59e0b','#ef4444'] }] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'70%' }
+      });
+    }
+    function renderWIPRetainer(){
+      document.getElementById('wipValue').textContent = baht(wip);
+      document.getElementById('retainerValue').textContent = baht(retainerTotal);
+      // drafts
+      const tb = document.getElementById('tblDraft'); tb.innerHTML='';
+      draftInvoices.forEach(d=>{
+        const tr = document.createElement('tr');
+        const badge = d.status.includes('รอ') ? '<span class="badge bg-amber-100 text-amber-700">'+d.status+'</span>' : d.status;
+        tr.innerHTML = `<td class="py-2">${d.project}</td>
+                        <td class="py-2">${d.client}</td>
+                        <td class="py-2 text-right mono">${baht(d.amount)}</td>
+                        <td class="py-2 text-right">${badge}</td>`;
+        tb.appendChild(tr);
+      });
+      // retainers
+      const trt = document.getElementById('tblRetainer'); trt.innerHTML='';
+      retainers.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2">${r.project}</td><td class="py-2 text-right mono">${baht(r.remain)}</td>`;
+        trt.appendChild(tr);
+      });
+    }
+    function renderBills(){
+      const tb = document.getElementById('tblBills'); tb.innerHTML='';
+      billsDue.forEach(b=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2">${b.vendor}</td>
+                        <td class="py-2">${b.desc}</td>
+                        <td class="py-2 text-right">${b.due}</td>
+                        <td class="py-2 text-right mono">${baht(b.amount)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+    function renderReimb(){
+      const ul = document.getElementById('listReimb'); ul.innerHTML='';
+      reimburse.forEach(r=>{
+        const color = r.status==='approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between p-3 rounded-xl border border-slate-200">
+          <div><div class="font-medium">${r.who}</div><div class="text-xs text-slate-500">${r.what}</div></div>
+          <div class="flex items-center gap-2">
+            <span class="mono">${baht(r.amount)}</span>
+            <span class="pill ${color}">${r.status}</span>
+          </div>
+        </div>`;
+        ul.appendChild(li);
+      });
+    }
+    function renderPL(){
+      new Chart(document.getElementById('chartPL'),{
+        type:'bar',
+        data:{ labels: pl.labels,
+               datasets:[
+                 {label:'Revenue', data: pl.revenue, backgroundColor:'rgba(14,165,233,.7)'},
+                 {label:'COGS', data: pl.cogs, backgroundColor:'rgba(100,116,139,.6)'},
+                 {label:'OPEX', data: pl.opex, backgroundColor:'rgba(167,139,250,.6)'},
+               ]},
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } }, plugins:{ tooltip:{ callbacks:{
+          label:(ctx)=> ctx.raw>=0? ' + '+ctx.raw+'k':' - '+Math.abs(ctx.raw)+'k'
+        }}}}
+      });
+    }
+    function renderBS(){
+      new Chart(document.getElementById('chartBS'),{
+        type:'bar',
+        data:{ labels: bs.labels, datasets:[{ data: bs.values, backgroundColor:['#0ea5e9','#94a3b8','#22c55e'] }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+      });
+    }
+    function renderCF(){
+      new Chart(document.getElementById('chartCF'),{
+        type:'line',
+        data:{ labels: cf.labels, datasets:[{ label:'ยอดเงินสดคงเหลือ (ล้านบาท)', data: cf.cash, tension:.35, borderColor:'#0ea5e9', fill:false }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:false } } }
+      });
+    }
+    function renderBank(){
+      const tb = document.getElementById('tblBank'); tb.innerHTML='';
+      bank.forEach(b=>{
+        const tr = document.createElement('tr');
+        const badge = b.status==='ครบถ้วน' ? '<span class="badge bg-emerald-100 text-emerald-700">ครบถ้วน</span>' :
+                                              '<span class="badge bg-amber-100 text-amber-700">ค้างตรวจ</span>';
+        tr.innerHTML = `<td class="py-2">${b.acc}</td>
+                        <td class="py-2">${b.bank}</td>
+                        <td class="py-2 text-right mono">${b.bal}</td>
+                        <td class="py-2 text-right mono">${b.openItems}</td>
+                        <td class="py-2 text-right">${badge}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+    function renderChecklist(){
+      const ul = document.getElementById('listChecklist'); ul.innerHTML='';
+      let done=0;
+      checklist.forEach((c,i)=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<label class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <span>${c.text}</span>
+          <input type="checkbox" ${c.done?'checked':''} data-idx="${i}" class="w-4 h-4">
+        </label>`;
+        ul.appendChild(li);
+        if(c.done) done++;
+      });
+      document.getElementById('chkProgress').style.width = Math.round((done/checklist.length)*100)+'%';
+    }
+    document.getElementById('listChecklist').addEventListener('change', e=>{
+      if(e.target.type==='checkbox'){
+        const idx = Number(e.target.getAttribute('data-idx'));
+        checklist[idx].done = e.target.checked;
+        let done = checklist.filter(x=>x.done).length;
+        document.getElementById('chkProgress').style.width = Math.round((done/checklist.length)*100)+'%';
+      }
+    });
+
+    // CSV export for AR aging
+    document.getElementById('btn-ar-csv').addEventListener('click', ()=>{
+      const rows = [['Bucket','Amount'], ['0-30', arAging.values[0]], ['31-60', arAging.values[1]], ['61+', arAging.values[2]]];
+      const csv = rows.map(r=> r.join(',')).join('\\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='tprgs-ar-aging.csv'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // Drill drawer
+    const drawer = document.getElementById('drawer');
+    function openDrill(title, html){ document.getElementById('drawerTitle').textContent = title; document.getElementById('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+    document.querySelectorAll('[data-drill]').forEach(el=>{
+      el.addEventListener('click', e=>{
+        const key = e.currentTarget.getAttribute('data-drill');
+        const html = '<div class="text-sm">หน้ารายละเอียดพร้อมตัวกรอง/ตาราง/ส่งออก (mock)</div>';
+        const titles = {
+          ar:'A/R Aging – รายละเอียด', ap:'A/P Aging – รายละเอียด', draft:'Draft Invoices – ตรวจสอบ/อนุมัติ',
+          retainer:'Retainer – รายละเอียด', bills:'Bills Due – ทั้งหมด', pl:'งบกำไรขาดทุน (P&L) แบบเต็ม',
+          bank:'Bank Reconciliation – ทั้งหมด'
+        };
+        openDrill(titles[key]||'รายละเอียด', html);
+      });
+    });
+
+    // Export PNG
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-accounting-dashboard.png'; a.click();
+      }
+    });
+
+    // Init render
+    renderARAging();
+    renderAPAging();
+    renderWIPRetainer();
+    renderBills();
+    renderReimb();
+    renderPL();
+    renderBS();
+    renderCF();
+    renderBank();
+    renderChecklist();
+  </script>
+</body>
+</html>

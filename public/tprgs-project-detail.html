@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TPRGS – Project Detail (หน้าตั้งค่าโครงการ)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* smooth tabs */
+      .tab-panel{display:none}
+      .tab-panel.active{display:block}
+      .badge{font-size:.75rem;padding:.15rem .5rem;border-radius:.75rem}
+      .card{background:#fff;border:1px solid #e7eaf0;border-radius:1rem;padding:1rem}
+      .muted{color:#64748b}
+      .pill{background:#eef2ff;color:#3b82f6;border-radius:999px;padding:.25rem .6rem;font-size:.75rem}
+      .shadow-soft{box-shadow:0 4px 14px rgba(20,30,55,.08)}
+      .sticky-save{position:sticky;bottom:0;z-index:40}
+      .kpi{display:flex;align-items:center;gap:.5rem}
+      .kpi .num{font-size:1.25rem;font-weight:700}
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-600 text-white grid place-items-center font-bold">TP</div>
+          <div>
+            <div class="text-sm text-slate-500">TPRGS.COM</div>
+            <h1 class="text-lg font-semibold leading-tight">Project Detail – หน้าตั้งค่าโครงการ</h1>
+          </div>
+          <span class="ml-2 pill">Mockup</span>
+        </div>
+
+        <!-- Role switch -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm text-slate-500">มุมมองสิทธิ์:</label>
+          <select id="roleSel" class="border rounded-lg px-3 py-2 text-sm">
+            <option value="admin">ผู้บริหารสูงสุด / Admin</option>
+            <option value="acct">ฝ่ายบัญชี</option>
+            <option value="pm">ผู้จัดการโครงการ (PM)</option>
+            <option value="emp">พนักงานทั่วไป</option>
+          </select>
+          <a href="index.html" class="ml-2 text-sky-700 underline text-sm">กลับหน้า index</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <!-- Breadcrumb -->
+      <nav class="text-sm text-slate-500">
+        Projects / P-2501 · โครงการรีสอร์ทริมทะเล / <span class="text-slate-900 font-medium">Project Detail</span>
+      </nav>
+
+      <!-- Project header info -->
+      <section class="grid md:grid-cols-3 gap-4">
+        <div class="card shadow-soft md:col-span-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs muted">รหัสโครงการ</div>
+              <div class="text-lg font-semibold">P-2501</div>
+            </div>
+            <div class="kpi">
+              <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">สถานะ: Active</span>
+              <span class="badge bg-indigo-50 text-indigo-700 border border-indigo-200">ประเภท: Fixed Fee</span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="text-xs muted">ชื่อโครงการ</div>
+            <div class="font-medium">โครงการรีสอร์ทริมทะเล – Coastal Resort</div>
+          </div>
+        </div>
+
+        <div class="card shadow-soft">
+          <div class="text-xs muted">ผู้จัดการโครงการ (PM)</div>
+          <div class="font-medium">อนุรักษ์ แก้วนเกียร</div>
+          <div class="text-xs muted mt-2">Principal-in-Charge</div>
+          <div class="font-medium">อรุณศรี กรวดสวัสดิ์</div>
+        </div>
+      </section>
+
+      <!-- Tabs -->
+      <section class="bg-white border rounded-2xl shadow-soft">
+        <!-- Tab headers -->
+        <div class="flex flex-wrap items-center gap-2 border-b px-4 pt-3">
+          <button data-tab="tab-general" class="tab-btn px-4 py-3 -mb-px border-b-2 border-indigo-600 font-medium">ทั่วไป</button>
+          <button data-tab="tab-contract" class="tab-btn px-4 py-3 -mb-px border-b-2 border-transparent hover:border-slate-200">สัญญาและการเงิน</button>
+          <button data-tab="tab-wbs" class="tab-btn px-4 py-3 -mb-px border-b-2 border-transparent hover:border-slate-200">โครงสร้างงาน (WBS)</button>
+          <button data-tab="tab-team" class="tab-btn px-4 py-3 -mb-px border-b-2 border-transparent hover:border-slate-200">ทีมงาน</button>
+          <div class="ml-auto px-4 py-2 text-xs text-slate-500">การปรับแก้ทั้งหมดเป็น Mock • ไม่มีการบันทึกจริง</div>
+        </div>
+
+        <!-- Tab panels -->
+        <div class="p-4 space-y-6">
+
+          <!-- GENERAL -->
+          <div id="tab-general" class="tab-panel active space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="card">
+                <div class="font-medium mb-3">ข้อมูลระบุตัวตน</div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <label class="col-span-1">รหัสโครงการ
+                    <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" value="P-2501">
+                  </label>
+                  <label class="col-span-1">สถานะ
+                    <select class="mt-1 w-full border rounded-lg px-3 py-2">
+                      <option>Active</option><option>On Hold</option><option>Completed</option>
+                    </select>
+                  </label>
+                  <label class="col-span-2">ชื่อโครงการ
+                    <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" value="โครงการรีสอร์ทริมทะเล – Coastal Resort">
+                  </label>
+                  <label class="col-span-1">ชื่อลูกค้า
+                    <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" value="Coastal Dev Co.,Ltd.">
+                  </label>
+                  <label class="col-span-1">ประเภทโครงการ
+                    <select class="mt-1 w-full border rounded-lg px-3 py-2">
+                      <option>New Building</option><option>Renovation</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="font-medium mb-3">ผู้รับผิดชอบ</div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <label class="col-span-1">Project Manager
+                    <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" value="อนุรักษ์ แก้วนเกียร">
+                  </label>
+                  <label class="col-span-1">Principal-in-Charge
+                    <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" value="อรุณศรี กรวดสวัสดิ์">
+                  </label>
+                  <label class="col-span-1">เริ่มต้น
+                    <input type="date" class="mt-1 w-full border rounded-lg px-3 py-2" value="2025-01-15">
+                  </label>
+                  <label class="col-span-1">กำหนดเสร็จ
+                    <input type="date" class="mt-1 w-full border rounded-lg px-3 py-2" value="2025-12-15">
+                  </label>
+                  <label class="col-span-2">ความสัมพันธ์โครงการ
+                    <select class="mt-1 w-full border rounded-lg px-3 py-2">
+                      <option>Parent Project (โครงการแม่)</option>
+                      <option>Child Project (โครงการลูก ของ P-2501)</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="font-medium mb-2">คำอธิบายมุมมองตามสิทธิ์</div>
+              <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1">
+                <li><b>Admin</b>: เห็นทุกอย่าง รวมอัตราต้นทุนพนักงานและกำไร</li>
+                <li><b>ฝ่ายบัญชี</b>: เน้นการตั้งค่าใบแจ้งหนี้/รอบบิล เห็นมูลค่าสัญญาและงบประมาณ</li>
+                <li><b>PM</b>: จัดการ WBS และงบชั่วโมง ไม่เห็นต้นทุน/กำไรเชิงลึก</li>
+                <li><b>พนักงาน</b>: เห็นเฉพาะข้อมูลหลักและงานที่ตนเกี่ยวข้อง ไม่เห็นการเงิน</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- CONTRACT & FINANCIALS -->
+          <div id="tab-contract" class="tab-panel space-y-4">
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="card md:col-span-2">
+                <div class="font-medium mb-3">ข้อมูลสัญญา</div>
+                <div class="grid md:grid-cols-2 gap-3 text-sm">
+                  <label>ประเภทสัญญา
+                    <select id="contractType" class="mt-1 w-full border rounded-lg px-3 py-2">
+                      <option>Fixed Fee</option>
+                      <option>Hourly (NTE)</option>
+                      <option>Cost Plus</option>
+                    </select>
+                  </label>
+                  <label>มูลค่าสัญญารวม (฿)
+                    <input id="contractAmount" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="59000000">
+                  </label>
+                </div>
+              </div>
+
+              <div class="card" data-visible="admin,acct">
+                <div class="font-medium mb-2">Billing Settings</div>
+                <div class="text-sm grid gap-2">
+                  <label>รอบวางบิล
+                    <select class="mt-1 w-full border rounded-lg px-3 py-2">
+                      <option>รายเดือน</option><option>รายเฟส</option><option>ตามความก้าวหน้า</option>
+                    </select>
+                  </label>
+                  <label>เครดิต (วัน)
+                    <input type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="30">
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="card">
+                <div class="font-medium mb-2">งบประมาณ</div>
+                <div class="grid gap-2 text-sm">
+                  <label>งบค่าบริการ (Fees)
+                    <input id="budgetFees" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="36000000">
+                  </label>
+                  <label>งบที่ปรึกษา (Consultants)
+                    <input id="budgetConsult" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="12000000">
+                  </label>
+                  <label>งบค่าใช้จ่ายตรง (Expenses)
+                    <input id="budgetExp" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="11000000">
+                  </label>
+                </div>
+              </div>
+
+              <div class="card" data-visible="admin,acct">
+                <div class="font-medium mb-2">อัตราค่าบริการ (Bill Rates)</div>
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-slate-500">
+                      <th class="py-1">ตำแหน่ง</th><th>อัตรา (฿/ชม.)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="py-1">Senior Architect</td><td><input type="number" class="w-32 border rounded px-2 py-1" value="2200"></td></tr>
+                    <tr><td class="py-1">Architect</td><td><input type="number" class="w-32 border rounded px-2 py-1" value="1500"></td></tr>
+                    <tr><td class="py-1">Draftsman</td><td><input type="number" class="w-32 border rounded px-2 py-1" value="900"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card" data-visible="admin">
+                <div class="font-medium mb-2">อัตราต้นทุน (Cost Rates) • Admin Only</div>
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-slate-500">
+                      <th class="py-1">ตำแหน่ง</th><th>ต้นทุน (฿/ชม.)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="py-1">Senior Architect</td><td><input id="costSr" type="number" class="w-32 border rounded px-2 py-1" value="1200"></td></tr>
+                    <tr><td class="py-1">Architect</td><td><input id="costArch" type="number" class="w-32 border rounded px-2 py-1" value="800"></td></tr>
+                    <tr><td class="py-1">Draftsman</td><td><input id="costDrf" type="number" class="w-32 border rounded px-2 py-1" value="500"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="card md:col-span-2">
+                <div class="font-medium mb-2">คำนวณภาพรวม (Mock)</div>
+                <div class="text-sm text-slate-600">สมมติให้ “ต้นทุนแรงงานรวม” ใส่ค่าประมาณเองด้านล่าง เพื่อคำนวณกำไร</div>
+                <div class="grid md:grid-cols-3 gap-3 mt-3 text-sm">
+                  <label>ต้นทุนแรงงานรวม (฿)
+                    <input id="laborCost" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="9500000">
+                  </label>
+                  <div class="kpi card">
+                    <div>งบรวม</div>
+                    <div class="num" id="kpiBudget">฿–</div>
+                  </div>
+                  <div class="kpi card" data-visible="admin,acct">
+                    <div>คาดการณ์กำไร</div>
+                    <div class="num text-emerald-700" id="kpiProfit">฿–</div>
+                    <span class="pill" id="kpiMargin">–%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="font-medium mb-2">บันทึกช่วยจำ</div>
+                <textarea class="w-full border rounded-lg px-3 py-2" rows="5" placeholder="หมายเหตุเกี่ยวกับสัญญา/การเงิน..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- WBS -->
+          <div id="tab-wbs" class="tab-panel space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">โครงสร้างงาน (Work Breakdown Structure)</div>
+              <div class="flex gap-2" data-visible="admin,pm">
+                <button class="px-3 py-2 rounded-lg bg-slate-100">+ เพิ่มเฟส</button>
+                <button class="px-3 py-2 rounded-lg bg-slate-100">+ เพิ่ม Task</button>
+              </div>
+            </div>
+
+            <div class="card overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-slate-500">
+                    <th class="py-2">เฟส / Task</th>
+                    <th>งบชั่วโมง</th>
+                    <th>งบค่าบริการ (฿)</th>
+                    <th>มอบหมาย</th>
+                    <th>กำหนดเสร็จ</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="font-medium">
+                    <td class="py-2">S1 – Schematic Design</td>
+                    <td>3,000</td><td>12,000,000</td><td>ทีมสถาปนิก</td><td>2025-04-30</td><td><span class="badge bg-amber-50 text-amber-700 border border-amber-200">กำลังทำ</span></td>
+                  </tr>
+                  <tr class="text-slate-700">
+                    <td class="pl-6">• จัดทำ Massing & Concept</td>
+                    <td>1,200</td><td>4,200,000</td><td>Senior + Arch</td><td>2025-03-15</td><td>In Progress</td>
+                  </tr>
+                  <tr class="text-slate-700">
+                    <td class="pl-6">• นำเสนอรอบที่ 1</td>
+                    <td>300</td><td>1,100,000</td><td>PM</td><td>2025-04-01</td><td>Planned</td>
+                  </tr>
+                  <tr class="font-medium">
+                    <td class="py-2">S2 – Design Development</td>
+                    <td>2,200</td><td>9,500,000</td><td>ทีมสถาปนิก+วิศวกร</td><td>2025-07-31</td><td><span class="badge bg-blue-50 text-blue-700 border border-blue-200">วางแผน</span></td>
+                  </tr>
+                  <tr class="font-medium">
+                    <td class="py-2">S3 – Construction Documents</td>
+                    <td>3,800</td><td>14,300,000</td><td>ทั้งหมด</td><td>2025-11-15</td><td><span class="badge bg-slate-100 text-slate-700 border">รอดำเนินการ</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="card">
+                <div class="text-sm muted">รวมงบชั่วโมง</div>
+                <div class="text-2xl font-semibold">9,000 ชม.</div>
+              </div>
+              <div class="card">
+                <div class="text-sm muted">งบค่าบริการรวม (จาก WBS)</div>
+                <div class="text-2xl font-semibold">฿ 36,000,000</div>
+              </div>
+              <div class="card" data-visible="admin,pm">
+                <div class="text-sm muted">เครื่องมือ</div>
+                <div class="flex gap-2 mt-2">
+                  <button class="px-3 py-2 rounded-lg bg-slate-100">แจกแจงงบอัตโนมัติ</button>
+                  <button class="px-3 py-2 rounded-lg bg-slate-100">ส่งออก CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TEAM -->
+          <div id="tab-team" class="tab-panel space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">ทีมงานโครงการ</div>
+              <button class="px-3 py-2 rounded-lg bg-slate-100" data-visible="admin,pm">+ เพิ่มสมาชิก</button>
+            </div>
+
+            <div class="card overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-slate-500">
+                    <th class="py-2">พนักงาน</th><th>บทบาท</th><th data-visible="admin,acct">อัตราบิล (฿/ชม.)</th><th data-visible="admin">ต้นทุน (฿/ชม.)</th><th>การจัดสรร</th><th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="py-2">อรุณศรี กรวดสวัสดิ์</td><td>Principal</td><td data-visible="admin,acct">3,000</td><td data-visible="admin">1,600</td><td>10%</td><td>Active</td>
+                  </tr>
+                  <tr>
+                    <td class="py-2">อนุรักษ์ แก้วนเกียร</td><td>PM</td><td data-visible="admin,acct">2,200</td><td data-visible="admin">1,200</td><td>50%</td><td>Active</td>
+                  </tr>
+                  <tr>
+                    <td class="py-2">ชัยนันต์ หอมเหล้า</td><td>Draftsman</td><td data-visible="admin,acct">900</td><td data-visible="admin">500</td><td>80%</td><td>Active</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sticky save bar -->
+        <div class="sticky-save bg-white border-t px-4 py-3 flex items-center justify-between rounded-b-2xl">
+          <div class="text-xs text-slate-500">สถานะ: มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก (จำลอง)</div>
+          <div class="flex gap-2">
+            <button class="px-3 py-2 rounded-lg border">ยกเลิก</button>
+            <button class="px-3 py-2 rounded-lg bg-sky-600 text-white">บันทึกการเปลี่ยนแปลง</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // ----- Tabs -----
+      const btns = document.querySelectorAll('.tab-btn');
+      const panels = document.querySelectorAll('.tab-panel');
+      btns.forEach(b=>b.addEventListener('click', ()=>{
+        btns.forEach(x=>x.classList.remove('border-indigo-600'));
+        b.classList.add('border-indigo-600');
+        panels.forEach(p=>p.classList.remove('active'));
+        document.getElementById(b.dataset.tab).classList.add('active');
+      }));
+
+      // ----- Role-based visibility -----
+      const roleSel = document.getElementById('roleSel');
+      function applyRole(role){
+        document.querySelectorAll('[data-visible]').forEach(el=>{
+          const list = el.getAttribute('data-visible').split(',').map(s=>s.trim());
+          el.style.display = list.includes(role) || role==='admin' ? '' : 'none';
+        });
+        // Hide KPI profit for non admin/account
+        const profitBox = document.getElementById('kpiProfit').closest('.kpi');
+        const marginPill = document.getElementById('kpiMargin');
+        const showProfit = (role==='admin' || role==='acct');
+        profitBox.style.display = showProfit ? '' : 'none';
+        marginPill.style.display = showProfit ? '' : 'none';
+      }
+      roleSel.addEventListener('change', e=>applyRole(e.target.value));
+      applyRole(roleSel.value);
+
+      // ----- Finance realtime calc (mock) -----
+      const fmt = n=> '฿ ' + Number(n||0).toLocaleString('th-TH');
+      function recalc(){
+        const fees = +document.getElementById('budgetFees').value || 0;
+        const cons = +document.getElementById('budgetConsult').value || 0;
+        const exp  = +document.getElementById('budgetExp').value || 0;
+        const labor= +document.getElementById('laborCost').value || 0;
+        const contract = +document.getElementById('contractAmount').value || 0;
+
+        const totalBudget = fees + cons + exp;
+        const profit = contract - (cons + exp + labor); // ไม่หัก Fees เพราะถือเป็นรายรับ
+        const margin = contract ? (profit/contract*100) : 0;
+
+        document.getElementById('kpiBudget').textContent = fmt(totalBudget);
+        document.getElementById('kpiProfit').textContent = fmt(profit);
+        document.getElementById('kpiMargin').textContent = margin.toFixed(1) + '%';
+      }
+      ['budgetFees','budgetConsult','budgetExp','laborCost','contractAmount'].forEach(id=>{
+        document.getElementById(id).addEventListener('input', recalc);
+      });
+      recalc();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Manager Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --accent:#a78bfa; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .kpi{ font-size:1.35rem; font-weight:700; }
+    .pill{ display:inline-block; padding:.25rem .55rem; border-radius:999px; font-size:.72rem; }
+    .bar{ height:10px; border-radius:999px; background:#e2e8f0; overflow:hidden }
+    .bar > i{ display:block; height:100%; background:#0ea5e9 }
+    /* Simple Gantt */
+    .gantt-row{ display:grid; grid-template-columns:120px 1fr; gap:10px; align-items:center; }
+    .gantt-track{ position:relative; height:16px; background:#f1f5f9; border-radius:999px; overflow:hidden; }
+    .gantt-bar{ position:absolute; top:0; bottom:0; background:#0ea5e9; border-radius:999px; }
+    .gantt-milestone{ position:absolute; top:-4px; width:8px; height:24px; background:#f59e0b; border-radius:2px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">TP</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">แดชบอร์ดผู้จัดการแผนก (Manager)</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option>สัปดาห์นี้</option>
+          <option selected>เดือนนี้</option>
+          <option>ไตรมาสนี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- กลุ่มที่ 1 -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">กลุ่มที่ 1: การติดตามสถานะโครงการ (Project Tracking)</h2>
+        <span class="text-xs text-slate-500">ปรับปรุงล่าสุด: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- My Projects Overview -->
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">My Projects Overview</div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Active</span>
+              <span class="kpi">8</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Completed</span>
+              <span class="kpi">3</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">At Risk</span>
+              <span class="kpi text-red-600">2</span>
+            </div>
+            <div class="text-xs text-slate-500">* แสดงเฉพาะโครงการที่คุณเป็นผู้จัดการ</div>
+            <button class="text-sky-600 text-sm" data-drill="overview">เจาะลึก →</button>
+          </div>
+        </div>
+
+        <!-- Budget vs Actual by Project (Hours/Cost) -->
+        <div class="card lg:col-span-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Budget vs. Actual by Project</div>
+            <button class="text-sky-600 text-sm" data-drill="bva">รายละเอียด →</button>
+          </div>
+          <div class="h-72 md:h-80"><canvas id="chartBvA"></canvas></div>
+        </div>
+
+        <!-- Gantt Summary + Milestones -->
+        <div class="card lg:col-span-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Project Timeline / Gantt</div>
+            <button class="text-sky-600 text-sm" data-drill="gantt">ดูทั้งหมด →</button>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="gantt-row">
+              <div class="text-slate-600">PRJ-1001</div>
+              <div class="gantt-track">
+                <div class="gantt-bar" style="left:5%; width:55%"></div>
+                <div class="gantt-milestone" style="left:60%"></div>
+              </div>
+            </div>
+            <div class="gantt-row">
+              <div class="text-slate-600">PRJ-1033</div>
+              <div class="gantt-track">
+                <div class="gantt-bar" style="left:20%; width:40%"></div>
+                <div class="gantt-milestone" style="left:57%"></div>
+              </div>
+            </div>
+            <div class="gantt-row">
+              <div class="text-slate-600">PRJ-1042</div>
+              <div class="gantt-track">
+                <div class="gantt-bar" style="left:10%; width:70%"></div>
+                <div class="gantt-milestone" style="left:78%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="text-xs text-slate-500 mt-2">เสาสีส้ม = Milestone ถัดไป</div>
+        </div>
+
+        <!-- EVM -->
+        <div class="card lg:col-span-12">
+          <div class="font-semibold mb-2">Earned Value Management (EVM)</div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">CPI (ค่าเฉลี่ย)</div>
+              <div class="kpi mt-1 text-emerald-600">1.05</div>
+              <div class="text-xs text-slate-500">> 1 ดี: ใช้เงินต่ำกว่าแผน</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">SPI (ค่าเฉลี่ย)</div>
+              <div class="kpi mt-1 text-amber-600">0.93</div>
+              <div class="text-xs text-slate-500">< 1 ช้า: ล่าช้าเทียบแผน</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">โครงการ CPI ต่ำ < 0.9</div>
+              <div class="kpi mt-1 text-red-600">1</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">โครงการ SPI ต่ำ < 0.9</div>
+              <div class="kpi mt-1 text-red-600">2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 2 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 2: การจัดการทรัพยากรและทีมงาน (Resource & Team)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Team Utilization -->
+        <div class="card lg:col-span-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Team Utilization</div>
+            <button class="text-sky-600 text-sm" data-drill="util">ดูรายบุคคล →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">พนักงาน</th><th class="text-left py-2">Utilization</th><th class="text-right py-2">Billable Hrs</th></tr>
+            </thead>
+            <tbody id="tblUtil"></tbody>
+          </table>
+        </div>
+
+        <!-- Approvals -->
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Timesheet & Expense Approvals</div>
+          <ul class="space-y-2 text-sm" id="listApprovals"></ul>
+          <div class="text-xs text-slate-500 mt-2">* คลิกเพื่อดูรายละเอียดก่อนอนุมัติ</div>
+        </div>
+
+        <!-- Workload Heatmap -->
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Team Workload (สัปดาห์ถัดไป)</div>
+          <div class="text-xs text-slate-500 mb-2">เข้ม = งานเยอะ</div>
+          <div id="heatmap" class="space-y-2"></div>
+          <div class="flex items-center gap-2 mt-2 text-xs text-slate-500">
+            <span>น้อย</span>
+            <div class="h-3 w-3 rounded" style="background:#e5f3ff"></div>
+            <div class="h-3 w-3 rounded" style="background:#bfe3ff"></div>
+            <div class="h-3 w-3 rounded" style="background:#8fd0ff"></div>
+            <div class="h-3 w-3 rounded" style="background:#5abaff"></div>
+            <div class="h-3 w-3 rounded" style="background:#2ea1ff"></div>
+            <span>มาก</span>
+          </div>
+        </div>
+
+        <!-- Overdue Tasks -->
+        <div class="card lg:col-span-12">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Overdue Tasks</div>
+            <button class="text-sky-600 text-sm" data-drill="overdue">รายละเอียด →</button>
+          </div>
+          <ul class="text-sm grid md:grid-cols-2 gap-2" id="listOverdue"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 3 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 3: การเงินและการเรียกเก็บเงินของโครงการ (Project Financials & Billing)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Unbilled -->
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Unbilled Time & Expenses</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">ชั่วโมงยังไม่บิล</div>
+              <div class="kpi mt-1">128 ชม.</div>
+              <div class="text-xs text-slate-500">คิดเป็น ~฿ 256,000</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">ค่าใช้จ่ายยังไม่บิล</div>
+              <div class="kpi mt-1">฿ 84,500</div>
+            </div>
+          </div>
+          <button class="text-sky-600 text-sm mt-3" data-drill="unbilled">ดูรายละเอียดต่อโครงการ →</button>
+        </div>
+
+        <!-- Invoicing Summary -->
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Invoicing Summary</div>
+          <div class="h-56"><canvas id="chartInvoice"></canvas></div>
+          <div class="text-xs text-slate-500 mt-2">ส่งแล้ว: 6 • ค้างชำระ: 2 • เตรียมส่ง: 3</div>
+        </div>
+
+        <!-- Project Profitability -->
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Project Profitability</div>
+            <button class="text-sky-600 text-sm" data-drill="profit">เจาะลึก →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">โครงการ</th><th class="text-left py-2">Margin</th><th class="text-right py-2">กำไร (฿)</th></tr>
+            </thead>
+            <tbody id="tblProfit"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่มที่ 4 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 4: รายการที่ต้องทำและแจ้งเตือน (Action Items & Notifications)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-6">
+          <div class="font-semibold mb-2">My To-Dos</div>
+          <ul class="space-y-2 text-sm" id="listTodos"></ul>
+        </div>
+        <div class="card lg:col-span-6">
+          <div class="font-semibold mb-2">Project Alerts</div>
+          <ul class="space-y-2 text-sm" id="listAlerts"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: Manager
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ---------- Mock Data ----------
+    const bvaLabels = ['PRJ-1001','PRJ-1007','PRJ-1033','PRJ-1042'];
+    const hrsBudget = [320, 240, 280, 360];
+    const hrsActual = [340, 210, 295, 410];
+    const costBudget = [520, 410, 480, 600];
+    const costActual = [560, 380, 500, 690];
+
+    const utilRows = [
+      {name:'ศศิธร', util: 86, bill: 126},
+      {name:'ธนวัต', util: 74, bill: 108},
+      {name:'มยุรี', util: 69, bill: 96},
+      {name:'เจตน์', util: 62, bill: 88},
+      {name:'สุรีรัตน์', util: 58, bill: 82},
+    ];
+
+    const approvals = [
+      {type:'Timesheet', who:'ศศิธร – PRJ-1033 • 8 ชม.'},
+      {type:'Timesheet', who:'ธนวัต – PRJ-1001 • 6 ชม.'},
+      {type:'Expense', who:'มยุรี – PRJ-1007 • ฿ 1,240'},
+    ];
+
+    const heatmapDays = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์'];
+    const heatmap = [
+      {name:'ศศิธร', values:[2,5,6,7,3]},
+      {name:'ธนวัต', values:[4,4,7,6,5]},
+      {name:'มยุรี', values:[1,3,4,3,2]},
+      {name:'เจตน์', values:[3,5,6,2,4]},
+      {name:'สุรีรัตน์', values:[2,2,5,6,5]},
+    ]; // scale 1-7
+
+    const overdue = [
+      {task:'ออกแบบ UI – Mobile CRM', who:'มยุรี', project:'PRJ-1033', due:'เลยกำหนด 2 วัน'},
+      {task:'ทดสอบ UAT Sprint 5', who:'ธนวัต', project:'PRJ-1001', due:'เลยกำหนด 1 วัน'},
+      {task:'อัปเดตเอกสาร API', who:'เจตน์', project:'PRJ-1042', due:'เลยกำหนด 3 วัน'},
+      {task:'ปรับ ETL schedule', who:'สุรีรัตน์', project:'PRJ-1042', due:'เลยกำหนด 1 วัน'},
+    ];
+
+    const invoiceSummary = { sent:6, overdue:2, pending:3 };
+
+    const profitability = [
+      {code:'PRJ-1001', margin: 28, profit: 320000},
+      {code:'PRJ-1033', margin: 22, profit: 210000},
+      {code:'PRJ-1042', margin: 31, profit: 420000},
+      {code:'PRJ-1007', margin: 18, profit: 145000},
+    ];
+
+    const todos = [
+      {task:'เช็คแผนงานสัปดาห์หน้า – ทีม Dev', when:'วันนี้'},
+      {task:'รีวิวยอด Unbilled • PRJ-1033', when:'วันนี้'},
+      {task:'พูดคุยลูกค้า Delta – เรื่อง scope', when:'พรุ่งนี้'},
+    ];
+
+    const alerts = [
+      {msg:'PRJ-1033 ใช้งบถึง 82% แล้ว', type:'budget'},
+      {msg:'PRJ-1042 milestone “Data Load #2” ใกล้ถึงกำหนด (2 วัน)', type:'deadline'},
+      {msg:'PRJ-1001 SPI < 0.9 (ล่าช้าเทียบแผน)', type:'spi'},
+    ];
+
+    const fmtBaht = v => '฿ ' + v.toLocaleString('th-TH');
+
+    // ---------- Populate Tables/Lists ----------
+    const $util = document.getElementById('tblUtil');
+    utilRows.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="py-2">${r.name}</td>
+        <td class="py-2">
+          <div class="bar"><i style="width:${r.util}%"></i></div>
+          <div class="text-xs text-slate-500 mt-1">${r.util}%</div>
+        </td>
+        <td class="py-2 text-right">${r.bill} ชม.</td>`;
+      $util.appendChild(tr);
+    });
+
+    const $ap = document.getElementById('listApprovals');
+    approvals.forEach(a=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2">
+        <div>${a.type}: <span class="text-slate-500">${a.who}</span></div>
+        <div class="flex items-center gap-2">
+          <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-drill="app">ดู</button>
+          <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">อนุมัติ</button>
+        </div>
+      </div>`;
+      $ap.appendChild(li);
+    });
+
+    const $heat = document.getElementById('heatmap');
+    heatmap.forEach(row=>{
+      const wrapper = document.createElement('div');
+      wrapper.className = 'grid grid-cols-6 items-center gap-2';
+      wrapper.innerHTML = `<div class="text-sm text-slate-600">${row.name}</div>`;
+      heatmapDays.forEach((d,idx)=>{
+        const level = row.values[idx];
+        const shades = ['#e5f3ff','#bfe3ff','#8fd0ff','#5abaff','#2ea1ff','#148ae6','#0a6bc0'];
+        const cell = document.createElement('div');
+        cell.title = `${d}: ${level*2} ชม.`;
+        cell.className = 'h-6 rounded';
+        cell.style.background = shades[Math.max(0, Math.min(level-1, shades.length-1))];
+        wrapper.appendChild(cell);
+      });
+      $heat.appendChild(wrapper);
+    });
+
+    const $od = document.getElementById('listOverdue');
+    overdue.forEach(o=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+        <div>
+          <div class="font-medium">${o.task}</div>
+          <div class="text-xs text-slate-500">${o.project} • ผู้รับผิดชอบ: ${o.who}</div>
+        </div>
+        <span class="pill bg-red-100 text-red-700">${o.due}</span>
+      </div>`;
+      $od.appendChild(li);
+    });
+
+    const $pf = document.getElementById('tblProfit');
+    profitability.forEach(p=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="py-2">${p.code}</td>
+        <td class="py-2">
+          <div class="bar"><i style="width:${p.margin}%; background:#22c55e"></i></div>
+          <div class="text-xs text-slate-500 mt-1">${p.margin}%</div>
+        </td>
+        <td class="py-2 text-right">${fmtBaht(p.profit)}</td>`;
+      $pf.appendChild(tr);
+    });
+
+    const $todo = document.getElementById('listTodos');
+    todos.forEach(t=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<label class="flex items-center justify-between gap-2">
+        <span>${t.task}</span>
+        <span class="text-xs text-slate-500">${t.when}</span>
+      </label>`;
+      $todo.appendChild(li);
+    });
+
+    const $al = document.getElementById('listAlerts');
+    alerts.forEach(a=>{
+      const color = a.type==='budget' ? 'bg-amber-100 text-amber-700' : (a.type==='deadline' ? 'bg-sky-100 text-sky-700' : 'bg-red-100 text-red-700');
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+        <div>${a.msg}</div>
+        <span class="pill ${color}">แจ้งเตือน</span>
+      </div>`;
+      $al.appendChild(li);
+    });
+
+    // ---------- Charts (fixed heights) ----------
+    function buildBvA(){
+      return new Chart(document.getElementById('chartBvA'), {
+        type:'bar',
+        data:{
+          labels:bvaLabels,
+          datasets:[
+            {label:'Budget Hrs', data:hrsBudget, backgroundColor:'rgba(14,165,233,.6)'},
+            {label:'Actual Hrs', data:hrsActual, backgroundColor:'rgba(239,68,68,.5)'},
+            {label:'Budget Cost (k)', data:costBudget, backgroundColor:'rgba(167,139,250,.5)'},
+            {label:'Actual Cost (k)', data:costActual, backgroundColor:'rgba(34,197,94,.5)'}
+          ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    function buildInvoice(){
+      return new Chart(document.getElementById('chartInvoice'), {
+        type:'doughnut',
+        data:{
+          labels:['ส่งแล้ว','ค้างชำระ','เตรียมส่ง'],
+          datasets:[{ data:[invoiceSummary.sent,invoiceSummary.overdue,invoiceSummary.pending], backgroundColor:['#bae6fd','#fecaca','#fde68a'] }]
+        },
+        options:{ plugins:{legend:{position:'bottom'}} }
+      });
+    }
+
+    const charts = { bva: buildBvA(), invoice: buildInvoice() };
+
+    // ---------- Drill Drawer ----------
+    const drawer = document.getElementById('drawer');
+    function openDrill(title, html){ document.getElementById('drawerTitle').textContent = title; document.getElementById('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+
+    document.querySelectorAll('[data-drill]').forEach(el=>{
+      el.addEventListener('click', e=>{
+        const key = e.currentTarget.getAttribute('data-drill');
+        if(key==='overview'){
+          openDrill('My Projects – รายละเอียด', '<div class="text-sm">ตารางโครงการ พร้อมสถานะ/ผู้รับผิดชอบ/ความเสี่ยง (mock)</div>');
+        } else if(key==='bva'){
+          openDrill('Budget vs Actual – รายโครงการ', '<div class="text-sm">เปรียบเทียบชั่วโมง/ต้นทุนแบบเจาะลึก พร้อมสัญญาณเตือน Cost Overrun (mock)</div>');
+        } else if(key==='gantt'){
+          openDrill('Gantt – ไทม์ไลน์ทั้งหมด', '<div class="text-sm">แสดง Gantt เต็มหน้าจอ พร้อม Dependencies (mock)</div>');
+        } else if(key==='util'){
+          openDrill('Team Utilization – รายบุคคล', '<div class="text-sm">รายการ Utilization รายบุคคล พร้อมเป้าหมาย • สลับมุมมองสัปดาห์/เดือน (mock)</div>');
+        } else if(key==='overdue'){
+          openDrill('Overdue Tasks – รายการทั้งหมด', '<div class="text-sm">ทุกรายการที่เลยกำหนด แยกตามโครงการ/ผู้รับผิดชอบ (mock)</div>');
+        } else if(key==='unbilled'){
+          openDrill('Unbilled – ตามโครงการ', '<div class="text-sm">แสดงชั่วโมง/ค่าใช้จ่ายที่ยังไม่บิล แยกตามโครงการ (mock)</div>');
+        } else if(key==='profit'){
+          openDrill('Project Profitability – รายละเอียด', '<div class="text-sm">กำไร/ขาดทุน • Margin • แนวโน้มต่อโครงการ (mock)</div>');
+        } else if(key==='app'){
+          openDrill('รายการรออนุมัติ', '<div class="text-sm">รายละเอียด Timesheet / Expense ก่อนกดอนุมัติ (mock)</div>');
+        }
+      });
+    });
+
+    // ---------- Export PNG ----------
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-manager-dashboard.png'; a.click();
+      }
+    });
+  </script>
+</body>
+</html>

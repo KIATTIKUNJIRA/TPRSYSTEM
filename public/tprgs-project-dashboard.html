@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TPRGS – Project Dashboard</title>
+  <style>
+    body{font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f7f9fc;color:#1f2937}
+    .wrap{max-width:1100px;margin:auto;padding:20px}
+    .head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;text-decoration:none;color:#1f2937}
+    .btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
+    .crumb{color:#64748b}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 8px 20px rgba(31,41,55,.06);margin-top:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <div class="crumb">Projects &gt; <span id="pid">P-2501</span></div>
+        <h1 style="margin:6px 0">Project Dashboard – <span id="pname">โครงการรีสอร์ตริมทะเล</span></h1>
+      </div>
+      <div class="row">
+        <a id="detailBtn" href="#" class="btn">ตั้งค่า (Project Detail)</a>
+        <a id="workstreamBtn" href="#" class="btn">แผนงานโครงการ</a>
+        <a href="index.html" class="btn primary">กลับหน้า Link Hub</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>สรุปโครงการ (Mock)</h3>
+      <ul>
+        <li>ชนิดสัญญา: Fixed Fee</li>
+        <li>งบรวม: ฿65,000,000</li>
+        <li>วันเริ่ม: 2025-02-01 / กำหนดเสร็จ: 2026-01-31</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const qp = (k)=> new URLSearchParams(location.search).get(k);
+    const pid = qp('id') || 'P-2501';
+    document.getElementById('pid').textContent = pid;
+    document.getElementById('detailBtn').href = `tprgs-project-detail.html?id=${encodeURIComponent(pid)}`;
+    document.getElementById('workstreamBtn').href = `tprgs-sub-projects.html?parentId=${encodeURIComponent(pid)}`;
+  </script>
+</body>
+</html>

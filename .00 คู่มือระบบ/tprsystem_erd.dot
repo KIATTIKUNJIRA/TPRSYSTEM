@@ -1,0 +1,136 @@
+
+digraph ERD {
+  rankdir=LR;
+  node [shape=plaintext, fontname="Inter"];
+  edge [color="#777"];
+
+  // Table helper as HTML-like labels
+  core_companies [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>core.companies</b></td></tr>
+      <tr><td>id (bigserial) PK</td></tr>
+      <tr><td>name (text) UNIQUE</td></tr>
+      <tr><td>status (text)</td></tr>
+      <tr><td>created_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  hr_people [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>hr.people</b></td></tr>
+      <tr><td>id (bigserial) PK</td></tr>
+      <tr><td>auth_uid (uuid) UNIQUE</td></tr>
+      <tr><td>email (text) UNIQUE</td></tr>
+      <tr><td>first_name, last_name</td></tr>
+      <tr><td>company_id (bigint) FK→core.companies.id</td></tr>
+      <tr><td>department_id (bigint)</td></tr>
+      <tr><td>status (text)</td></tr>
+      <tr><td>created_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  hr_role_history [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>hr.role_history</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>person_id (bigint) FK→hr.people.id</td></tr>
+      <tr><td>role_name (text)</td></tr>
+      <tr><td>granted_at (timestamptz)</td></tr>
+      <tr><td>revoked_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  proj_projects [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>proj.projects</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>company_id (bigint) FK→core.companies.id</td></tr>
+      <tr><td>name (text)</td></tr>
+      <tr><td>status (text)</td></tr>
+      <tr><td>start_date, end_date</td></tr>
+      <tr><td>created_by (uuid)</td></tr>
+      <tr><td>created_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  proj_project_members [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>proj.project_members</b></td></tr>
+      <tr><td>project_id (uuid) FK→proj.projects.id</td></tr>
+      <tr><td>person_id (bigint) FK→hr.people.id</td></tr>
+      <tr><td>role (text)</td></tr>
+      <tr><td><i>PK (project_id, person_id)</i></td></tr>
+    </table>
+  >];
+
+  proj_board_columns [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>proj.board_columns</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>project_id (uuid) FK→proj.projects.id</td></tr>
+      <tr><td>name (text)</td></tr>
+      <tr><td>position (int)</td></tr>
+    </table>
+  >];
+
+  proj_board_items [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>proj.board_items</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>project_id (uuid) FK→proj.projects.id</td></tr>
+      <tr><td>column_id (uuid) FK→proj.board_columns.id</td></tr>
+      <tr><td>title, description</td></tr>
+      <tr><td>assignee_id (bigint) FK→hr.people.id</td></tr>
+      <tr><td>due_date (date), priority (text)</td></tr>
+      <tr><td>created_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  proj_board_item_values [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>proj.board_item_values</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>item_id (uuid) FK→proj.board_items.id</td></tr>
+      <tr><td>column_key (text)</td></tr>
+      <tr><td>value (jsonb)</td></tr>
+    </table>
+  >];
+
+  cost_cost_rates [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>cost.cost_rates</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>person_id (bigint) FK→hr.people.id</td></tr>
+      <tr><td>rate_type ('hour'|'day'|'bill')</td></tr>
+      <tr><td>amount (numeric), currency</td></tr>
+      <tr><td>effective_from, effective_to (date)</td></tr>
+    </table>
+  >];
+
+  cost_timesheets [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f3f4f6"><b>cost.timesheets</b></td></tr>
+      <tr><td>id (uuid) PK</td></tr>
+      <tr><td>person_id (bigint) FK→hr.people.id</td></tr>
+      <tr><td>project_id (uuid) FK→proj.projects.id</td></tr>
+      <tr><td>work_date (date), hours (numeric)</td></tr>
+      <tr><td>note (text), snapshot_rate (numeric)</td></tr>
+      <tr><td>created_at (timestamptz)</td></tr>
+    </table>
+  >];
+
+  // Edges (relationships)
+  hr_people -> core_companies [label="company_id"];
+  hr_role_history -> hr_people [label="person_id"];
+  proj_projects -> core_companies [label="company_id"];
+  proj_project_members -> proj_projects [label="project_id"];
+  proj_project_members -> hr_people [label="person_id"];
+  proj_board_columns -> proj_projects [label="project_id"];
+  proj_board_items -> proj_projects [label="project_id"];
+  proj_board_items -> proj_board_columns [label="column_id"];
+  proj_board_items -> hr_people [label="assignee_id"];
+  proj_board_item_values -> proj_board_items [label="item_id"];
+  cost_cost_rates -> hr_people [label="person_id"];
+  cost_timesheets -> hr_people [label="person_id"];
+  cost_timesheets -> proj_projects [label="project_id"];
+}

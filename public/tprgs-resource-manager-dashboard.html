@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Resource Manager Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.72rem; }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .grid-heat{ display:grid; gap:6px; }
+    .cell{ border-radius:10px; height:34px; display:flex; align-items:center; justify-content:center; font-size:.8rem; color:#0f172a; }
+    .cell[data-level="low"]{ background:#dbeafe } /* ว่าง/น้อย */
+    .cell[data-level="mid"]{ background:#dcfce7 } /* พอดี */
+    .cell[data-level="high"]{ background:#fee2e2 } /* ล้น */
+    .sticky-col{ position:sticky; left:0; background:#fff; z-index:10; }
+    .sticky-head{ position:sticky; top:0; background:#fff; z-index:10; }
+    .link{ color:#0ea5e9 }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Header -->
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">RM</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">Resource Manager Dashboard • หอบังคับการบุคลากร</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="horizon" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option value="6" selected>6 สัปดาห์</option>
+          <option value="8">8 สัปดาห์</option>
+          <option value="12">12 สัปดาห์</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- Heatmap -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">1) Utilization Heatmap – ทั้งบริษัท</h2>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="pill bg-blue-100 text-blue-700">ว่าง/น้อย &lt; 40%</span>
+          <span class="pill bg-emerald-100 text-emerald-700">พอดี 40–80%</span>
+          <span class="pill bg-red-100 text-red-700">ล้น &gt; 80%</span>
+        </div>
+      </div>
+      <div class="card overflow-auto" id="heatCard">
+        <div id="heatmap"></div>
+      </div>
+    </section>
+
+    <!-- Capacity Forecast + Allocation -->
+    <section>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-7">
+          <div class="font-semibold mb-2">2) Availability & Capacity Forecast</div>
+          <div class="h-64"><canvas id="chartCapacity"></canvas></div>
+          <div class="text-xs text-slate-500 mt-1">แสดงชั่วโมงว่างรวมของบริษัทในช่วงเวลาข้างหน้า</div>
+        </div>
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">3) Resource Allocation by Project</div>
+          <div class="h-64"><canvas id="chartAlloc"></canvas></div>
+          <div class="text-xs text-slate-500 mt-1">จำนวนพนักงานที่ถูกจัดสรรในแต่ละโครงการ (ตัวอย่าง)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bench + Skills -->
+    <section>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-7" id="bench">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">4) Bench Time Report – พนักงานที่ยังไม่มีโครงการ</div>
+            <button id="btn-bench-csv" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs">Export CSV</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500"><tr><th class="text-left py-2">ชื่อ</th><th class="text-left py-2">ตำแหน่ง</th><th class="text-left py-2">ทักษะ</th><th class="text-right py-2">พร้อมจากวันที่</th></tr></thead>
+            <tbody id="tblBench"></tbody>
+          </table>
+        </div>
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">5) Skills & Certifications Search</div>
+          <div class="flex gap-2 mb-3">
+            <input id="skillQuery" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="เช่น Revit, BIM, Civil, PMBOK, PE license..."/>
+            <button id="btn-search" class="px-3 py-2 rounded-xl bg-sky-600 text-white">ค้นหา</button>
+          </div>
+          <ul id="skillResults" class="space-y-2 text-sm"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • Resource Manager • mock data
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    function $(id){return document.getElementById(id)}
+
+    // ---------------- Mock Data ----------------
+    const roles = ['Civil Eng.','Structural Eng.','Architect','MEP Eng.','Planner','Quantity Surveyor'];
+    const employees = [
+      {id:'E01', name:'อาทิตย์  ชาญเดชา', role:'Civil Eng.', skills:['Civil','Road','AutoCAD'], certs:['PE'], availableFrom:'2025-08-24', weeklyCapacity:40, util:[35,55,80,90,60,30,20,10]},
+      {id:'E02', name:'วศิน  รุ่งโรจน์', role:'Structural Eng.', skills:['Structural','Revit','ETABS'], certs:['PE','SE'], availableFrom:'2025-08-20', weeklyCapacity:40, util:[20,30,45,65,75,85,95,60]},
+      {id:'E03', name:'ชุติมา  พิพัฒน์สุข', role:'Architect', skills:['Revit','SketchUp','BIM'], certs:[], availableFrom:'2025-08-18', weeklyCapacity:40, util:[15,25,40,60,70,80,60,30]},
+      {id:'E04', name:'กานต์สินี  พงษ์ไทย', role:'Planner', skills:['Primavera','Planning'], certs:['PMP'], availableFrom:'2025-08-26', weeklyCapacity:40, util:[85,90,85,70,60,50,40,40]},
+      {id:'E05', name:'ภาคภูมิ  จิตรทวี', role:'MEP Eng.', skills:['MEP','Revit MEP'], certs:[], availableFrom:'2025-08-19', weeklyCapacity:40, util:[10,25,30,35,40,45,50,30]},
+      {id:'E06', name:'ญาดา  สุขสันต์', role:'Quantity Surveyor', skills:['QS','Cost','Excel'], certs:[], availableFrom:'2025-08-22', weeklyCapacity:40, util:[60,70,80,85,90,95,90,60]},
+      {id:'E07', name:'อัครชัย  รัตนศิริ', role:'Civil Eng.', skills:['Civil','Bridge'], certs:['PE'], availableFrom:'2025-08-17', weeklyCapacity:40, util:[0,10,20,30,35,45,55,25]},
+      {id:'E08', name:'กรกช  วิทยการ', role:'Structural Eng.', skills:['Structural','Tekla'], certs:[], availableFrom:'2025-08-21', weeklyCapacity:40, util:[30,30,30,30,30,30,30,30]},
+      {id:'E09', name:'ปุณณวัฒน์  กวีการ', role:'Architect', skills:['Rhino','BIM'], certs:[], availableFrom:'2025-08-23', weeklyCapacity:40, util:[95,95,90,85,80,70,60,50]},
+      {id:'E10', name:'ธารา  ทองดี', role:'Civil Eng.', skills:['Civil','Survey'], certs:[], availableFrom:'2025-08-25', weeklyCapacity:40, util:[20,20,20,20,20,20,20,20]},
+    ];
+
+    const projects = [
+      {id:'P-204', name:'สะพานข้ามแม่น้ำ', assigned: { 'Civil Eng.':3, 'Structural Eng.':2, 'Architect':1, 'MEP Eng.':1, 'Planner':1, 'Quantity Surveyor':1 }, openRoles:['Structural Eng.','Architect']},
+      {id:'P-318', name:'อาคารสำนักงาน Q', assigned: { 'Civil Eng.':2, 'Structural Eng.':1, 'Architect':2, 'MEP Eng.':2, 'Planner':1, 'Quantity Surveyor':1 }, openRoles:['Planner']},
+      {id:'P-401', name:'ทางด่วนตะวันตก', assigned: { 'Civil Eng.':4, 'Structural Eng.':2, 'Architect':0, 'MEP Eng.':0, 'Planner':2, 'Quantity Surveyor':2 }, openRoles:['Architect','MEP Eng.']},
+    ];
+
+    // ---------------- Horizon & Weeks ----------------
+    function weekLabels(n){
+      const arr=[]; const now = new Date();
+      for(let i=0;i<n;i++){ const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i*7); arr.push(`${d.getDate()}/${d.getMonth()+1}`); }
+      return arr;
+    }
+
+    // ---------------- Heatmap ----------------
+    const heatmap = $('heatmap');
+    const heatCard = $('heatCard');
+    function drawHeatmap(weeks=6){
+      const labels = weekLabels(weeks);
+      heatmap.innerHTML='';
+      heatmap.className='grid-heat';
+      heatmap.style.gridTemplateColumns = `200px repeat(${weeks}, minmax(84px,1fr))`;
+
+      // header
+      const hName = document.createElement('div'); hName.className='sticky-head sticky-col font-medium text-slate-500'; hName.textContent='พนักงาน'; heatmap.appendChild(hName);
+      labels.forEach(l=>{
+        const hd = document.createElement('div'); hd.className='sticky-head text-center font-medium text-slate-500'; hd.textContent=l; heatmap.appendChild(hd);
+      });
+
+      // rows
+      employees.forEach(emp=>{
+        const name = document.createElement('div'); name.className='sticky-col bg-white pr-2';
+        name.innerHTML = `<div class="font-medium">${emp.name}</div><div class="text-xs text-slate-500">${emp.role}</div>`;
+        heatmap.appendChild(name);
+        for(let w=0; w<weeks; w++){
+          const u = emp.util[w] ?? emp.util[emp.util.length-1];
+          const level = u<40?'low':(u<=80?'mid':'high');
+          const cell = document.createElement('button');
+          cell.className='cell'; cell.setAttribute('data-level', level);
+          cell.title = `${emp.name} – Util ${u}%`;
+          cell.textContent = u+'%';
+          cell.addEventListener('click', ()=> openDrill('รายละเอียดภาระงาน', `
+            <div class="space-y-3">
+              <div class="font-medium">${emp.name} • ${emp.role}</div>
+              <div>สัปดาห์ที่ ${labels[w]} – Utilization <b>${u}%</b></div>
+              <div>ทักษะ: ${emp.skills.join(', ') || '-'}</div>
+              <div>ใบรับรอง: ${emp.certs.join(', ') || '-'}</div>
+              <div class="text-xs text-slate-500">* หน้านี้เป็นตัวอย่างข้อมูลจำลอง</div>
+            </div>
+          `));
+          heatmap.appendChild(cell);
+        }
+      });
+    }
+
+    // ---------------- Capacity Forecast ----------------
+    let capChart, allocChart;
+    function renderCapacity(weeks=6){
+      const labels = weekLabels(weeks);
+      const totalCap = employees.reduce((sum,e)=> sum + e.weeklyCapacity, 0);
+      const avail = labels.map((_,i)=>{
+        const used = employees.reduce((s,e)=> s + e.weeklyCapacity * ((e.util[i] ?? e.util[e.util.length-1])/100), 0);
+        return Math.max(0, Math.round(totalCap - used));
+      });
+
+      if(capChart) capChart.destroy();
+      capChart = new Chart($('chartCapacity'), {
+        type:'line',
+        data:{ labels, datasets:[
+          {label:'ชั่วโมงว่างรวม', data:avail, fill:true, tension:.3, backgroundColor:'rgba(14,165,233,.15)', borderColor:'#0ea5e9'}
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{ title:{display:true, text:'ชั่วโมง'} } } }
+      });
+    }
+
+    // ---------------- Allocation by Project ----------------
+    function renderAlloc(){
+      const labels = projects.map(p=>p.name);
+      const sums = projects.map(p=> Object.values(p.assigned).reduce((a,b)=>a+b,0));
+      if(allocChart) allocChart.destroy();
+      allocChart = new Chart($('chartAlloc'), {
+        type:'bar',
+        data:{ labels, datasets:[{label:'จำนวนพนักงานที่จัดสรร', data:sums, backgroundColor:'#22c55e'}]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
+      });
+    }
+
+    // ---------------- Bench Report ----------------
+    function renderBench(){
+      const tb = $('tblBench'); tb.innerHTML='';
+      const bench = employees.filter(e=> (e.util[0]||0) < 20); // เกณฑ์ตัวอย่าง
+      bench.forEach(b=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2"><a href="#" class="link" data-emp="${b.id}">${b.name}</a></td>
+                        <td class="py-2">${b.role}</td>
+                        <td class="py-2">${b.skills.join(', ') || '-'}</td>
+                        <td class="py-2 text-right">${b.availableFrom}</td>`;
+        tb.appendChild(tr);
+      });
+
+      $('btn-bench-csv').onclick = ()=>{
+        const rows = [['Name','Role','Skills','AvailableFrom']].concat(bench.map(b=>[b.name,b.role,b.skills.join('|'),b.availableFrom]));
+        const csv = rows.map(r=>r.join(',')).join('\\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tprgs-bench-report.csv'; a.click(); URL.revokeObjectURL(a.href);
+      };
+
+      // click employee -> drawer
+      document.querySelectorAll('[data-emp]').forEach(a=> a.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const emp = employees.find(x=>x.id === a.getAttribute('data-emp'));
+        openDrill('โปรไฟล์ & ความพร้อม', `
+          <div class="space-y-3">
+            <div class="font-medium">${emp.name} • ${emp.role}</div>
+            <div>ทักษะ: ${emp.skills.join(', ') || '-'}</div>
+            <div>ใบรับรอง: ${emp.certs.join(', ') || '-'}</div>
+            <div>พร้อมเริ่มงานตั้งแต่ <b>${emp.availableFrom}</b></div>
+            <button class="px-3 py-2 rounded-xl bg-sky-600 text-white">แนะนำเข้ากับโครงการ…</button>
+          </div>
+        `);
+      }));
+    }
+
+    // ---------------- Skill Search ----------------
+    function renderSkillResults(q=''){
+      const ul = $('skillResults'); ul.innerHTML='';
+      if(!q){ ul.innerHTML = '<li class="text-slate-500">พิมพ์คำค้น เช่น "Revit", "PE", "Bridge"</li>'; return; }
+      const words = q.toLowerCase().split(/\\s+/).filter(Boolean);
+      const matches = employees.filter(e=>{
+        const hay = (e.skills.join(' ')+' '+e.certs.join(' ')+' '+e.role).toLowerCase();
+        return words.every(w=> hay.includes(w));
+      });
+      if(matches.length===0){ ul.innerHTML='<li class="text-slate-500">ไม่พบผลลัพธ์</li>'; return; }
+      matches.forEach(m=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <div class="font-medium">${m.name} • ${m.role}</div>
+            <div class="text-xs text-slate-500">ทักษะ: ${m.skills.join(', ') || '-'} | ใบรับรอง: ${m.certs.join(', ') || '-'}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-slate-500">พร้อมจาก</div>
+            <div class="mono">${m.availableFrom}</div>
+          </div>
+        </div>`;
+        ul.appendChild(li);
+      });
+    }
+
+    // ---------------- Drawer helpers ----------------
+    const drawer = $('drawer');
+    function openDrill(title, html){ $('drawerTitle').textContent = title; $('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+
+    // ---------------- Export PNG ----------------
+    $('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-resource-manager.png'; a.click();
+      }
+    });
+
+    // ---------------- Init ----------------
+    function init(){
+      const weeks = parseInt($('horizon').value,10);
+      drawHeatmap(weeks);
+      renderCapacity(weeks);
+      renderAlloc();
+      renderBench();
+      renderSkillResults('');
+    }
+    $('horizon').addEventListener('change', init);
+    $('btn-search').addEventListener('click', ()=> renderSkillResults($('skillQuery').value));
+    $('skillQuery').addEventListener('keydown', (e)=>{ if(e.key==='Enter') renderSkillResults(e.target.value) });
+    init();
+  </script>
+</body>
+</html>

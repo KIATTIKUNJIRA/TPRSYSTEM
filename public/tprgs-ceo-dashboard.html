@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – CEO Dashboard (Mock, Fixed Charts)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --accent:#a78bfa; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .kpi{ font-size:1.4rem; font-weight:600; }
+    .delta-up{ color: var(--ok); } .delta-down{ color: var(--danger); }
+    .pill{ display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.75rem; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">TP</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">แดชบอร์ดผู้บริหารสูงสุด (CEO)</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option value="mtd">เดือนนี้</option>
+          <option value="qtd">ไตรมาสนี้</option>
+          <option value="ytd" selected>ปีนี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">กลุ่มที่ 1: ภาพรวมสุขภาพทางการเงิน (Financial Health)</h2>
+        <span class="text-xs text-slate-500">ปรับปรุงล่าสุด: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-7">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">กระแสเงินสด (Cash In / Out + พยากรณ์)</div>
+            <button class="text-sky-600 text-sm" data-drill="cashflow">ดูรายละเอียด →</button>
+          </div>
+          <!-- Fixed height wrapper to prevent overly tall charts -->
+          <div class="h-72 md:h-80"><canvas id="chartCashflow"></canvas></div>
+          <div class="text-xs text-slate-500 mt-2">เส้นประ = พยากรณ์ 3 เดือนข้างหน้า</div>
+        </div>
+        <div class="lg:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="card">
+            <div class="text-sm text-slate-500">กำไรขั้นต้น (Gross Profit)</div>
+            <div class="kpi mt-1">฿ 4.25M</div>
+            <div class="text-xs mt-1"><span class="delta-up">▲ +12.4%</span> เทียบช่วงเดียวกันปีก่อน</div>
+            <button class="mt-3 text-sky-600 text-sm" data-drill="gp">เจาะลึก →</button>
+          </div>
+          <div class="card">
+            <div class="text-sm text-slate-500">กำไรสุทธิ (Net Profit)</div>
+            <div class="kpi mt-1">฿ 1.37M</div>
+            <div class="text-xs mt-1"><span class="delta-down">▼ −3.2%</span> เทียบช่วงเดียวกันปีก่อน</div>
+            <button class="mt-3 text-sky-600 text-sm" data-drill="np">เจาะลึก →</button>
+          </div>
+          <div class="card md:col-span-2">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold">อายุลูกหนี้ (A/R Aging)</div>
+              <button class="text-sky-600 text-sm" data-drill="ar">ลูกค้าที่ต้องติดตาม →</button>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div class="text-xs text-slate-500">0–30 วัน</div>
+                <div class="text-base font-semibold">฿ 1.2M</div>
+              </div>
+              <div class="text-center bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div class="text-xs text-slate-500">31–60 วัน</div>
+                <div class="text-base font-semibold">฿ 0.62M</div>
+              </div>
+              <div class="text-center bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div class="text-xs text-slate-500">61+ วัน</div>
+                <div class="text-base font-semibold text-red-600">฿ 0.35M</div>
+              </div>
+            </div>
+            <div class="mt-4 h-56"><canvas id="chartARAging"></canvas></div>
+          </div>
+        </div>
+        <div class="card lg:col-span-12">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">รายรับเทียบกับต้นทุน (Revenue vs. Cost)</div>
+            <button class="text-sky-600 text-sm" data-drill="revCost">ดูโครงสร้างต้นทุน →</button>
+          </div>
+          <div class="h-72 md:h-80"><canvas id="chartRevCost"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 2: ประสิทธิภาพของโครงการ (Project Performance)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Top Projects by Profit</div>
+            <button class="text-sky-600 text-sm" data-drill="topProfit">เจาะลึก →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="py-2 text-left">โครงการ</th><th class="py-2 text-left">ลูกค้า</th><th class="py-2 text-right">กำไร (฿)</th></tr>
+            </thead>
+            <tbody id="tblTopProjects"></tbody>
+          </table>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Projects Over Budget</div>
+            <button class="text-sky-600 text-sm" data-drill="overBudget">รายละเอียด →</button>
+          </div>
+          <ul id="listOverBudget" class="space-y-2 text-sm"></ul>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="text-slate-500 text-sm">Work‑in‑Progress (WIP)</div>
+          <div class="kpi mt-1">฿ 2.18M</div>
+          <div class="text-xs mt-1 text-slate-500">งานที่ทำแล้วแต่ยังไม่ออกใบแจ้งหนี้</div>
+          <button class="mt-3 text-sky-600 text-sm" data-drill="wip">ดูรายละเอียด →</button>
+        </div>
+        <div class="card lg:col-span-12">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Budget vs. Actual (Hours / Cost)</div>
+            <button class="text-sky-600 text-sm" data-drill="bva">เจาะลึกโครงการสำคัญ →</button>
+          </div>
+          <div class="h-64 md:h-72"><canvas id="chartBvA"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 3: ประสิทธิภาพของทีม (Team Performance)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Utilization Rate (บริษัท)</div>
+            <button class="text-sky-600 text-sm" data-drill="util">ดูรายบุคคล →</button>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="w-40 h-40">
+              <canvas id="chartUtil"></canvas>
+            </div>
+            <div>
+              <div class="text-sm text-slate-500">เฉลี่ยทั้งบริษัท</div>
+              <div class="kpi">78%</div>
+              <div class="text-xs"><span class="delta-up">▲ +4.1%</span> เทียบเดือนก่อน</div>
+            </div>
+          </div>
+        </div>
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Top Employees by Billed Services</div>
+          <table class="w-full text-sm">
+            <tbody id="tblTopEmployees" class="align-top"></tbody>
+          </table>
+        </div>
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Timesheet Compliance</div>
+          <div class="flex gap-3 text-sm">
+            <div class="pill bg-green-100 text-green-700">ส่งตรงเวลา 24</div>
+            <div class="pill bg-amber-100 text-amber-700">รออนุมัติ 5</div>
+            <div class="pill bg-red-100 text-red-700">ค้างส่ง 3</div>
+          </div>
+          <ul class="mt-3 space-y-2 text-sm" id="listTimesheet"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 4: รายการที่ต้องดำเนินการ (Actionable Items)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Approvals</div>
+          <ul class="space-y-2 text-sm" id="listApprovals"></ul>
+        </div>
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Invoices to be Sent</div>
+          <ul class="space-y-2 text-sm" id="listInvoices"></ul>
+        </div>
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">To‑Dos (CEO)</div>
+          <ul class="space-y-2 text-sm" id="listTodos"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: CEO
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.'];
+    const cashInPast = [1.2,1.1,1.5,1.4,1.8,1.7];
+    const cashOutPast= [0.8,0.9,1.0,1.1,1.2,1.3];
+    const cashInForecast = [1.6,1.9,2.0];
+    const cashOutForecast = [1.2,1.3,1.4];
+
+    const rev = [1.4,1.6,1.9,1.8,2.2,2.4,2.5];
+    const cost= [0.9,1.0,1.1,1.2,1.4,1.5,1.6];
+
+    const arAging = [1.2,0.62,0.35];
+    const bvaLabels = ['PRJ-1001','PRJ-1007','PRJ-1020','PRJ-1033','PRJ-1042'];
+    const bvaHoursBudget = [320, 240, 280, 360, 300];
+    const bvaHoursActual = [340, 210, 295, 400, 260];
+    const bvaCostBudget  = [520, 410, 480, 600, 520];
+    const bvaCostActual  = [560, 380, 500, 690, 470];
+
+    const topProjects = [
+      {code:'PRJ-1001', name:'Portal Revamp', client:'ABC Co.', profit: 820000},
+      {code:'PRJ-1033', name:'CRM Mobile', client:'Delta Ltd.', profit: 610000},
+      {code:'PRJ-1042', name:'Data Warehouse', client:'Gamma PLC', profit: 570000},
+      {code:'PRJ-1007', name:'Brand Refresh', client:'Sunrise', profit: 420000},
+      {code:'PRJ-1020', name:'IoT Pilot', client:'PeakLab', profit: 390000},
+    ];
+
+    const overBudget = [
+      {code:'PRJ-1033', name:'CRM Mobile', exceed:'ชั่วโมง +11%'},
+      {code:'PRJ-1001', name:'Portal Revamp', exceed:'ต้นทุน +8%'},
+    ];
+
+    const topEmployees = [
+      {name:'กิรติคุณ', billed: 540000},
+      {name:'ศศิธร', billed: 420000},
+      {name:'ธนวัต', billed: 380000},
+      {name:'มยุรี', billed: 310000},
+    ];
+
+    const timesheetIssues = [
+      {name:'วรัญญา', status:'ค้างส่ง', days:2},
+      {name:'ปวริศ', status:'รออนุมัติ', days:1},
+      {name:'อารยา', status:'ค้างส่ง', days:3},
+    ];
+
+    const approvals = [
+      {type:'Timesheet', who:'PM โครงการ PRJ-1033', amount:'48 ชม.'},
+      {type:'ค่าใช้จ่าย', who:'PRJ-1001 – ใบเสร็จเดินทาง', amount:'฿ 12,450'},
+      {type:'ใบเสนอราคา', who:'โครงการ Data Warehouse', amount:'฿ 1,230,000'},
+    ];
+
+    const invoices = [
+      {project:'PRJ-1001 – Portal Revamp', amount:'฿ 320,000', due:'ถึงรอบบิล 31 ส.ค.'},
+      {project:'PRJ-1033 – CRM Mobile', amount:'฿ 210,000', due:'ถึงรอบบิล 31 ส.ค.'},
+    ];
+
+    const todos = [
+      {task:'ประชุมสรุปงบ Q3 กับการเงิน', when:'ภายในสัปดาห์นี้'},
+      {task:'รีวิวสัญญาโครงการใหม่ (PeakLab)', when:'วันนี้'},
+      {task:'กำหนด OKR ทีมพัฒนา ไตรมาสหน้า', when:'ภายใน 2 สัปดาห์'},
+    ];
+
+    const fmtBaht = v => '฿ ' + v.toLocaleString('th-TH');
+    function openDrill(title, html){
+      document.getElementById('drawerTitle').textContent = title;
+      document.getElementById('drawerBody').innerHTML = html;
+      document.getElementById('drawer').classList.remove('hidden');
+    }
+    function closeDrill(){ document.getElementById('drawer').classList.add('hidden'); }
+    document.querySelectorAll('#drawer [data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrill(); });
+
+    const $top = document.getElementById('tblTopProjects');
+    topProjects.forEach(p=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="py-2">
+          <button class="text-sky-600" data-drill="proj:${p.code}">${p.code}</button>
+          <div class="text-slate-500 text-xs">${p.name}</div>
+        </td>
+        <td class="py-2">${p.client}</td>
+        <td class="py-2 text-right">${fmtBaht(p.profit)}</td>`;
+      $top.appendChild(tr);
+    });
+
+    const $ob = document.getElementById('listOverBudget');
+    overBudget.forEach(x=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2">
+        <div><div class="font-medium">${x.code}</div><div class="text-xs text-slate-500">${x.name}</div></div>
+        <span class="pill bg-red-100 text-red-700">${x.exceed}</span>
+      </div>`;
+      $ob.appendChild(li);
+    });
+
+    const $emp = document.getElementById('tblTopEmployees');
+    topEmployees.forEach((e,i)=>{
+      const width = Math.min(100, Math.round((e.billed/topEmployees[0].billed)*100));
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="py-2 w-1/2">${i+1}. ${e.name}</td>
+        <td class="py-2 w-1/2">
+          <div class="w-full h-2 bg-slate-100 rounded-full">
+            <div class="h-2 rounded-full" style="width:${width}%; background:#0ea5e9"></div>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">${fmtBaht(e.billed)}</div>
+        </td>`;
+      $emp.appendChild(tr);
+    });
+
+    const $ts = document.getElementById('listTimesheet');
+    timesheetIssues.forEach(t=>{
+      const color = t.status==='ค้างส่ง' ? 'red' : 'amber';
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2">
+        <div>${t.name}</div>
+        <span class="pill bg-${color}-100 text-${color}-700">${t.status} ${t.days} วัน</span>
+      </div>`;
+      $ts.appendChild(li);
+    });
+
+    const $ap = document.getElementById('listApprovals');
+    approvals.forEach(a=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2">
+        <div>
+          <div class="font-medium">${a.type}</div>
+          <div class="text-xs text-slate-500">${a.who}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="text-xs text-slate-500">${a.amount}</div>
+          <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">อนุมัติ</button>
+        </div>
+      </div>`;
+      $ap.appendChild(li);
+    });
+
+    const $inv = document.getElementById('listInvoices');
+    invoices.forEach(i=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2">
+        <div>
+          <div class="font-medium">${i.project}</div>
+          <div class="text-xs text-slate-500">${i.due}</div>
+        </div>
+        <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">สร้างใบแจ้งหนี้</button>
+      </div>`;
+      $inv.appendChild(li);
+    });
+
+    const $todo = document.getElementById('listTodos');
+    todos.forEach(t=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<label class="flex items-center justify-between gap-2">
+        <span>${t.task}</span>
+        <span class="text-xs text-slate-500">${t.when}</span>
+      </label>`;
+      $todo.appendChild(li);
+    });
+
+    // ---------- Chart Builders (fixed sizing & sensible y-scale) ----------
+    function moneyTick(v){ return '฿ '+v.toFixed(1)+'M'; }
+
+    function buildCashflow(){
+      const labels = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.*','ส.ค.*','ก.ย.*'];
+      const all = [...cashInPast, ...cashOutPast, ...cashInForecast, ...cashOutForecast];
+      const maxV = Math.max(...all) * 1.2; // leave headroom
+      return new Chart(document.getElementById('chartCashflow'), {
+        type:'line',
+        data:{
+          labels,
+          datasets:[
+            {label:'รับเข้า', data:[...cashInPast, ...cashInForecast], borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.12)', tension:.3, fill:true,
+             segment:{ borderDash: ctx => ctx.p0DataIndex>=6 ? [6,6] : undefined } },
+            {label:'จ่ายออก', data:[...cashOutPast, ...cashOutForecast], borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.08)', tension:.3, fill:true,
+             segment:{ borderDash: ctx => ctx.p0DataIndex>=6 ? [6,6] : undefined } },
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:true}, tooltip:{mode:'index', intersect:false} },
+          scales:{ y:{ beginAtZero:true, suggestedMax:maxV, ticks:{ callback: moneyTick } } }
+        }
+      });
+    }
+
+    function buildRevCost(){
+      const maxV = Math.max(...rev, ...cost) * 1.2;
+      return new Chart(document.getElementById('chartRevCost'), {
+        type:'bar',
+        data:{
+          labels:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.'],
+          datasets:[
+            {label:'รายรับ', data:rev, backgroundColor:'rgba(14,165,233,.7)'},
+            {label:'ต้นทุน', data:cost, backgroundColor:'rgba(100,116,139,.6)'}
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}},
+          scales:{ y:{ beginAtZero:true, suggestedMax:maxV, ticks:{ callback: moneyTick } } }
+        }
+      });
+    }
+
+    function buildARAging(){
+      return new Chart(document.getElementById('chartARAging'), {
+        type:'doughnut',
+        data:{ labels:['0–30 วัน','31–60 วัน','61+ วัน'], datasets:[{ data: arAging, backgroundColor:['#bae6fd','#fde68a','#fecaca'] }] },
+        options:{ plugins:{legend:{position:'right'}} }
+      });
+    }
+
+    function buildBvA(){
+      return new Chart(document.getElementById('chartBvA'), {
+        type:'bar',
+        data:{
+          labels: bvaLabels,
+          datasets:[
+            {label:'Budget Hrs', data:bvaHoursBudget, backgroundColor:'rgba(14,165,233,.6)'},
+            {label:'Actual Hrs', data:bvaHoursActual, backgroundColor:'rgba(239,68,68,.6)'},
+            {label:'Budget Cost (k)', data:bvaCostBudget, backgroundColor:'rgba(167,139,250,.5)'},
+            {label:'Actual Cost (k)', data:bvaCostActual, backgroundColor:'rgba(34,197,94,.5)'},
+          ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    function buildUtil(){
+      return new Chart(document.getElementById('chartUtil'), {
+        type:'doughnut',
+        data:{ labels:['Billable','Non‑billable'], datasets:[{ data:[78,22], backgroundColor:['#0ea5e9','#e2e8f0'] }] },
+        options:{ cutout:'70%', plugins:{legend:{display:false}} }
+      });
+    }
+
+    const charts = { cash: buildCashflow(), rc: buildRevCost(), ar: buildARAging(), bva: buildBvA(), util: buildUtil() };
+
+    // Drawer (same as previous)
+    document.querySelectorAll('[data-drill]').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        const key = e.currentTarget.getAttribute('data-drill');
+        if(key==='cashflow'){
+          openDrill('Cash Flow – รายการเคลื่อนไหว', `
+            <div class="space-y-2">
+              <div class="font-medium">เดือน ก.ค.*</div>
+              <ul class="list-disc pl-5">
+                <li>รับเงินงวด PRJ‑1001: ${fmtBaht(180000)}</li>
+                <li>จ่ายค่าแรงทีม Dev: ${fmtBaht(950000)}</li>
+                <li>จ่าย Cloud/Infra: ${fmtBaht(120000)}</li>
+              </ul>
+            </div>`);
+        } else if(key==='gp'){
+          openDrill('Gross Profit – รายเดือน', '<img class="w-full rounded-xl border" src="https://dummyimage.com/800x320/e2e8f0/1f2937&text=GP+by+Month+(mock)" alt="gp"/>');
+        } else if(key==='np'){
+          openDrill('Net Profit – รายเดือน', '<img class="w-full rounded-xl border" src="https://dummyimage.com/800x320/f1f5f9/1f2937&text=NP+by+Month+(mock)" alt="np"/>');
+        } else if(key==='ar'){
+          openDrill('A/R Aging – ลูกค้าที่ต้องติดตาม', '<table class="w-full text-sm"><tr><th class="text-left py-2">ลูกค้า</th><th class="text-right py-2">ยอดค้าง (฿)</th><th class="text-right py-2">อายุ</th></tr><tr><td>ABC Co.</td><td class="text-right">฿ 210,000</td><td class="text-right">45 วัน</td></tr><tr><td>Gamma PLC</td><td class="text-right">฿ 180,000</td><td class="text-right">67 วัน</td></tr><tr><td>Delta Ltd.</td><td class="text-right">฿ 90,000</td><td class="text-right">18 วัน</td></tr></table>');
+        } else if(key==='revCost'){
+          openDrill('โครงสร้างรายได้/ต้นทุน', '<ul class="list-disc pl-5 text-sm"><li>รายได้บริการ (Consulting) 72%</li><li>Subscription 18%</li><li>อื่นๆ 10%</li><li>ต้นทุนบุคลากร 58%</li><li>Infra/Tools 14%</li><li>ค่าใช้จ่ายทางการค้า 9%</li></ul>');
+        } else if(key==='topProfit'){
+          openDrill('Top Projects – รายละเอียดกำไร', '<div class="text-sm">แสดงตารางกำไรตามโครงการพร้อม Margin และแนวโน้ม (mock)</div>');
+        } else if(key==='overBudget'){
+          openDrill('Projects Over Budget – รายการ', '<div class="text-sm">PRJ‑1033 เกินชั่วโมง 11% • PRJ‑1001 เกินต้นทุน 8% (mock)</div>');
+        } else if(key==='wip'){
+          openDrill('WIP – รายโครงการ', '<div class="text-sm">ตารางรายการงานที่ทำแล้วแต่ยังไม่ออกใบแจ้งหนี้ (mock)</div>');
+        } else if(key==='bva'){
+          openDrill('Budget vs Actual – โครงการสำคัญ', '<div class="text-sm">เปรียบเทียบชั่วโมง/ต้นทุนรายโครงการ • คลิกไปหน้ารายละเอียดได้ (mock)</div>');
+        } else if(key==='util'){
+          openDrill('Utilization – รายบุคคล', '<div class="text-sm">แสดง Utilization รายบุคคล พร้อมเป้า/แนวโน้ม (mock)</div>');
+        } else if(key.startsWith('proj:')){
+          openDrill('รายละเอียดโครงการ '+key.split(':')[1], '<div class="text-sm">สรุปรายได้ ต้นทุน Margin และความเสี่ยง (mock)</div>');
+        }
+      });
+    });
+
+    // Export to PNG (same as previous)
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport;
+        document.body.appendChild(s);
+      }else{ doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = 'tprgs-ceo-dashboard.png';
+        a.click();
+      }
+    });
+  </script>
+</body>
+</html>

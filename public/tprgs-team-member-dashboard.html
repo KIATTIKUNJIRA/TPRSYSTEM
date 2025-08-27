@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Employee Digital Workspace (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.72rem; }
+    .bar{ height:10px; border-radius:999px; background:#e2e8f0; overflow:hidden }
+    .bar > i{ display:block; height:100%; background:var(--brand) }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+    input[type="number"]{ -moz-appearance: textfield; }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">ME</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">โต๊ะทำงานดิจิทัล – พนักงานทั่วไป</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option selected>สัปดาห์นี้</option>
+          <option>วันนี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- กลุ่ม 1: Time Entry -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">1) การบันทึกเวลาทำงาน (Time Entry)</h2>
+        <span class="text-xs text-slate-500">ปรับปรุงล่าสุด: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Timesheet -->
+        <div class="card lg:col-span-8 overflow-x-auto">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Timesheet (สัปดาห์นี้)</div>
+            <button id="btn-add-row" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm">+ เพิ่มแถว</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr id="thDays"><th class="text-left py-2 min-w-[180px]">Project / Task</th></tr>
+            </thead>
+            <tbody id="tbSheet"></tbody>
+            <tfoot>
+              <tr class="font-medium">
+                <td class="py-2 text-right pr-3 text-slate-600">รวม (ชม.)</td>
+                <td class="py-2 text-right mono" id="sum0">0</td>
+                <td class="py-2 text-right mono" id="sum1">0</td>
+                <td class="py-2 text-right mono" id="sum2">0</td>
+                <td class="py-2 text-right mono" id="sum3">0</td>
+                <td class="py-2 text-right mono" id="sum4">0</td>
+                <td class="py-2 text-right mono" id="sum5">0</td>
+                <td class="py-2 text-right mono" id="sum6">0</td>
+                <td class="py-2 text-right mono text-sky-700" id="sumTotal">0</td>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="text-xs text-slate-500 mt-2">Tip: กดที่ช่องตัวเลขเพื่อกรอกชั่วโมง (รองรับทศนิยม เช่น 1.5 = 1 ชั่วโมง 30 นาที)</div>
+        </div>
+
+        <!-- Timers + My Assignments -->
+        <div class="lg:col-span-4 space-y-4">
+          <!-- Timers -->
+          <div class="card">
+            <div class="font-semibold mb-2">ตัวจับเวลา (Timers)</div>
+            <ul id="timerList" class="space-y-2 text-sm"></ul>
+            <div class="text-xs text-slate-500 mt-2">เริ่ม-หยุด แล้ว “บันทึกเวลา” จะเติมลง Timesheet ของวันนี้อัตโนมัติ</div>
+          </div>
+          <!-- My assignments -->
+          <div class="card">
+            <div class="font-semibold mb-2">My To-Dos / My Assignments</div>
+            <ul id="myTasks" class="space-y-2 text-sm"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่ม 2: Expenses -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">2) การจัดการค่าใช้จ่าย (Expense Management)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">Expense Entry</div>
+          <form id="frmExpense" class="grid grid-cols-2 gap-3 text-sm">
+            <div class="col-span-2">
+              <label class="text-slate-600 text-xs">โครงการ</label>
+              <select id="exProject" class="w-full border rounded-xl p-2">
+                <option>PRJ-201 • ระบบบัญชี</option>
+                <option>PRJ-205 • CRM โมบาย</option>
+                <option>PRJ-209 • Data Pipeline</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">รายการ</label>
+              <input id="exItem" class="w-full border rounded-xl p-2" placeholder="เช่น ค่าเดินทาง"/>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">จำนวนเงิน (฿)</label>
+              <input id="exAmount" type="number" step="0.01" class="w-full border rounded-xl p-2 text-right mono"/>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">วันที่</label>
+              <input id="exDate" type="date" class="w-full border rounded-xl p-2"/>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">แนบไฟล์/ใบเสร็จ</label>
+              <input type="file" class="w-full border rounded-xl p-2"/>
+            </div>
+            <div class="col-span-2">
+              <button class="px-3 py-2 rounded-xl bg-slate-900 text-white">บันทึกค่าใช้จ่าย</button>
+            </div>
+          </form>
+        </div>
+        <div class="card lg:col-span-7">
+          <div class="font-semibold mb-2">Submitted Expenses</div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">โครงการ</th><th class="text-left py-2">รายการ</th><th class="text-right py-2">จำนวน (฿)</th><th class="text-left py-2">วันที่</th><th class="text-right py-2">สถานะ</th></tr>
+            </thead>
+            <tbody id="expenseList"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่ม 3: Personal & Performance -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">3) การจัดการส่วนตัวและประสิทธิภาพ (Personal & Performance)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Calendar -->
+        <div class="card lg:col-span-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">My Calendar (สัปดาห์นี้)</div>
+            <button class="text-sky-600 text-sm" id="btnAddEvent">+ เพิ่มนัดหมาย</button>
+          </div>
+          <ul id="calList" class="space-y-2 text-sm"></ul>
+        </div>
+
+        <!-- PTO -->
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Personal Time Off (ขอลางาน)</div>
+          <div class="text-xs text-slate-500 mb-2">สิทธิคงเหลือ: PTO 8 วัน • Sick 4 วัน</div>
+          <form id="frmLeave" class="grid grid-cols-2 gap-3 text-sm">
+            <div class="col-span-2">
+              <label class="text-slate-600 text-xs">ประเภทลา</label>
+              <select id="lvType" class="w-full border rounded-xl p-2">
+                <option value="PTO">ลาพักร้อน (PTO)</option>
+                <option value="Sick">ลาป่วย</option>
+                <option value="Personal">ลากิจ</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">จากวันที่</label>
+              <input id="lvStart" type="date" class="w-full border rounded-xl p-2"/>
+            </div>
+            <div>
+              <label class="text-slate-600 text-xs">ถึงวันที่</label>
+              <input id="lvEnd" type="date" class="w-full border rounded-xl p-2"/>
+            </div>
+            <div class="col-span-2">
+              <label class="text-slate-600 text-xs">เหตุผล</label>
+              <input id="lvReason" class="w-full border rounded-xl p-2" placeholder="เหตุผลโดยย่อ"/>
+            </div>
+            <div class="col-span-2">
+              <button class="px-3 py-2 rounded-xl bg-slate-900 text-white">ส่งคำร้อง</button>
+            </div>
+          </form>
+          <div class="mt-3">
+            <div class="font-medium text-sm mb-1">คำร้องล่าสุด</div>
+            <ul id="leaveList" class="space-y-2 text-sm"></ul>
+          </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">My Performance (สัปดาห์นี้)</div>
+          <div class="h-48"><canvas id="chartUtil"></canvas></div>
+          <div class="text-xs text-slate-500 mt-2">เป้าหมาย Utilization 75% ของ 40 ชม.</div>
+          <div class="mt-3">
+            <div class="text-sm text-slate-600 mb-1">ชั่วโมงรวมที่บันทึก: <span class="font-medium mono" id="hrsTotal">0</span> ชม.</div>
+            <div class="bar"><i id="hrsProgress" style="width:0%"></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[460px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: Employee
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ---------- Helpers ----------
+    const fmt = n => (Math.round(n*100)/100).toFixed(2);
+    const today = new Date();
+    function startOfWeek(d){
+      const t = new Date(d); const day = (t.getDay()+6)%7; t.setDate(t.getDate()-day); t.setHours(0,0,0,0); return t;
+    }
+    function addDays(d, n){ const t = new Date(d); t.setDate(t.getDate()+n); return t; }
+    function ymd(d){ return d.toISOString().slice(0,10); }
+    function thaiDate(d){ return d.toLocaleDateString('th-TH', {weekday:'short', day:'2-digit', month:'short'}); }
+
+    // ---------- Build Timesheet Header ----------
+    const weekStart = startOfWeek(today);
+    const th = document.getElementById('thDays');
+    const dayHeaders = [];
+    for(let i=0;i<7;i++){ const d = addDays(weekStart, i); dayHeaders.push(ymd(d)); const thd = document.createElement('th'); thd.className='text-right py-2 min-w-[80px]'; thd.textContent = thaiDate(d); th.appendChild(thd); }
+    const thTotal = document.createElement('th'); thTotal.className='text-right py-2 min-w-[90px]'; thTotal.textContent='รวม'; th.appendChild(thTotal);
+
+    // ---------- Mock Assignments/Tasks ----------
+    const assignments = [
+      {project:'PRJ-201', task:'UAT – ระบบบัญชี'},
+      {project:'PRJ-205', task:'ออกแบบหน้าจอ CRM'},
+      {project:'PRJ-209', task:'Data Pipeline – Mapping'},
+    ];
+
+    // Timesheet rows will be an array of {project, task, hours: [0..6]}
+    const timesheet = assignments.map(a=>({ ...a, hours:Array(7).fill(0) }));
+
+    // ---------- Render Timesheet ----------
+    const tbSheet = document.getElementById('tbSheet');
+    function renderSheet(){
+      tbSheet.innerHTML='';
+      timesheet.forEach((row, idx)=>{
+        const tr = document.createElement('tr');
+        const first = document.createElement('td'); first.className='py-2 pr-3';
+        first.innerHTML = `<div class="flex items-center gap-2">
+          <select class="border rounded-xl px-2 py-1 text-xs">
+            <option selected>${row.project}</option>
+            <option>PRJ-201</option><option>PRJ-205</option><option>PRJ-209</option>
+          </select>
+          <input class="border rounded-xl px-2 py-1 text-xs w-56" value="${row.task}"/>
+        </div>`;
+        tr.appendChild(first);
+        let rowTotal = 0;
+        row.hours.forEach((h, dIdx)=>{
+          const td = document.createElement('td'); td.className='py-1 text-right';
+          const inp = document.createElement('input'); inp.type='number'; inp.step='0.25'; inp.value=h; inp.className='w-16 text-right mono border rounded-lg px-2 py-1';
+          inp.addEventListener('input', ()=>{ row.hours[dIdx]=Number(inp.value||0); updateSums(); });
+          td.appendChild(inp); tr.appendChild(td);
+          rowTotal += Number(h);
+        });
+        const tdTotal = document.createElement('td'); tdTotal.className='py-1 text-right mono text-sky-700'; tdTotal.textContent = fmt(rowTotal); tr.appendChild(tdTotal);
+        tbSheet.appendChild(tr);
+      });
+      updateSums();
+    }
+
+    // ---------- Sums + Performance ----------
+    function updateSums(){
+      let weeklyTotal = 0;
+      for(let d=0; d<7; d++){ let s=0; timesheet.forEach(r=> s+=Number(r.hours[d]||0)); document.getElementById('sum'+d).textContent = fmt(s); weeklyTotal += s; }
+      document.getElementById('sumTotal').textContent = fmt(weeklyTotal);
+      document.getElementById('hrsTotal').textContent = fmt(weeklyTotal);
+      const pct = Math.min(100, Math.round( (weeklyTotal/40)*100 ));
+      document.getElementById('hrsProgress').style.width = pct+'%';
+      utilChart.data.datasets[0].data = [pct, 100-pct]; utilChart.update();
+    }
+
+    // ---------- Add Row ----------
+    document.getElementById('btn-add-row').addEventListener('click', ()=>{
+      timesheet.push({project:'PRJ-XXX', task:'New Task', hours:Array(7).fill(0)});
+      renderSheet();
+    });
+
+    // ---------- Timers ----------
+    const myTasks = [
+      {id:1, project:'PRJ-205', title:'ออกแบบฟอร์มลูกค้า', running:false, secs:0},
+      {id:2, project:'PRJ-201', title:'ทดสอบ flow การลงบัญชี', running:false, secs:0},
+      {id:3, project:'PRJ-209', title:'แก้ mapping ETL', running:false, secs:0},
+    ];
+    let tick;
+    function stopAll(){ myTasks.forEach(t=> t.running=false); if(tick) clearInterval(tick); }
+    function hhmmss(s){ const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sc = s%60; return [h,m,sc].map(v=>String(v).padStart(2,'0')).join(':'); }
+
+    const ulTimers = document.getElementById('timerList');
+    const ulMyTasks = document.getElementById('myTasks');
+    function renderTimers(){
+      ulTimers.innerHTML='';
+      myTasks.forEach(t=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div><div class="font-medium">${t.title}</div><div class="text-xs text-slate-500">${t.project}</div></div>
+          <div class="flex items-center gap-2">
+            <span class="mono">${hhmmss(t.secs)}</span>
+            ${t.running ?
+              `<button class="px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs" data-stop="${t.id}">หยุด</button>` :
+              `<button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs" data-start="${t.id}">เริ่ม</button>`}
+            <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-log="${t.id}">บันทึกเวลา</button>
+          </div>`;
+        ulTimers.appendChild(li);
+      });
+    }
+    function renderMyAssignments(){
+      ulMyTasks.innerHTML='';
+      myTasks.forEach(t=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div>${t.title} <span class="text-xs text-slate-500">(${t.project})</span></div>
+          <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-log-quick="${t.id}">+ ลงเวลา 1.0 ชม.</button>
+        </div>`;
+        ulMyTasks.appendChild(li);
+      });
+    }
+    renderTimers(); renderMyAssignments();
+
+    document.body.addEventListener('click', e=>{
+      const idStart = e.target.getAttribute('data-start');
+      const idStop = e.target.getAttribute('data-stop');
+      const idLog = e.target.getAttribute('data-log');
+      const idQuick = e.target.getAttribute('data-log-quick');
+
+      if(idStart){
+        stopAll();
+        const t = myTasks.find(x=>x.id==idStart); t.running=true;
+        tick = setInterval(()=>{ t.secs++; renderTimers(); },1000);
+        renderTimers();
+      }
+      if(idStop){
+        stopAll(); renderTimers();
+      }
+      if(idLog){
+        const t = myTasks.find(x=>x.id==idLog);
+        const hours = Math.max(0.25, Math.round((t.secs/3600)*4)/4); // ปัดเป็น 0.25h ขั้นต่ำ
+        addHoursToSheet(t.project, t.title, 0, hours); // 0 = วันนี้ (อิงคอลัมน์แรกของสัปดาห์นี้เฉยๆ)
+        t.secs = 0; stopAll(); renderTimers();
+      }
+      if(idQuick){
+        const t = myTasks.find(x=>x.id==idQuick);
+        addHoursToSheet(t.project, t.title, 0, 1.0);
+      }
+    });
+
+    function addHoursToSheet(project, title, dayIndex, hours){
+      // หา row ที่ project+task ตรง ถ้าไม่มี สร้างแถวใหม่
+      let row = timesheet.find(r=> r.project===project && r.task===title);
+      if(!row){ row = {project, task:title, hours:Array(7).fill(0)}; timesheet.push(row); renderSheet(); }
+      row.hours[dayIndex] = Number(row.hours[dayIndex]||0) + hours;
+      renderSheet();
+    }
+
+    // ---------- Expenses ----------
+    const expenseList = document.getElementById('expenseList');
+    const expenses = [];
+    document.getElementById('frmExpense').addEventListener('submit', e=>{
+      e.preventDefault();
+      const ex = {
+        project: document.getElementById('exProject').value,
+        item: document.getElementById('exItem').value || 'ไม่ระบุ',
+        amount: Number(document.getElementById('exAmount').value||0),
+        date: document.getElementById('exDate').value || ymd(today),
+        status: 'รออนุมัติ'
+      };
+      expenses.unshift(ex); renderExpenses(); e.target.reset();
+    });
+    function renderExpenses(){
+      expenseList.innerHTML='';
+      expenses.forEach(ex=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2">${ex.project}</td>
+                        <td class="py-2">${ex.item}</td>
+                        <td class="py-2 text-right mono">${fmt(ex.amount)}</td>
+                        <td class="py-2">${ex.date}</td>
+                        <td class="py-2 text-right"><span class="pill bg-amber-100 text-amber-700">${ex.status}</span></td>`;
+        expenseList.appendChild(tr);
+      });
+    }
+
+    // ---------- Calendar ----------
+    const calList = document.getElementById('calList');
+    const events = [
+      {title:'Daily Standup', when:'วันนี้ 09:30', where:'ออนไลน์'},
+      {title:'ประชุมลูกค้า (PRJ-205)', when:'พรุ่งนี้ 14:00', where:'Zoom'},
+      {title:'ส่ง UI Sprint 3', when:'พฤหัส 17:00', where:'เดลิเวอรีในระบบ'},
+    ];
+    function renderCalendar(){
+      calList.innerHTML='';
+      events.forEach(ev=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div>
+            <div class="font-medium">${ev.title}</div>
+            <div class="text-xs text-slate-500">${ev.when} • ${ev.where}</div>
+          </div>
+          <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-join>เปิด</button>
+        </div>`;
+        calList.appendChild(li);
+      });
+    }
+    renderCalendar();
+    document.getElementById('btnAddEvent').addEventListener('click', ()=>{
+      events.push({title:'นัดส่วนตัว', when:'ศุกร์ 18:00', where:'ส่วนตัว'}); renderCalendar();
+    });
+
+    // ---------- Leaves ----------
+    const leaveList = document.getElementById('leaveList');
+    const leaves = [];
+    document.getElementById('frmLeave').addEventListener('submit', e=>{
+      e.preventDefault();
+      const lv = {
+        type: document.getElementById('lvType').value,
+        start: document.getElementById('lvStart').value || ymd(today),
+        end: document.getElementById('lvEnd').value || ymd(today),
+        reason: document.getElementById('lvReason').value || '-',
+        status: 'รออนุมัติ'
+      };
+      leaves.unshift(lv); renderLeaves(); e.target.reset();
+    });
+    function renderLeaves(){
+      leaveList.innerHTML='';
+      leaves.forEach(lv=>{
+        const li = document.createElement('li');
+        const color = lv.type==='PTO' ? 'bg-violet-100 text-violet-700' : (lv.type==='Sick'?'bg-red-100 text-red-700':'bg-sky-100 text-sky-700');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div>
+            <div class="font-medium">${lv.type}</div>
+            <div class="text-xs text-slate-500">${lv.start} → ${lv.end} • ${lv.reason}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="pill ${color}">${lv.type}</span>
+            <span class="pill bg-amber-100 text-amber-700">${lv.status}</span>
+          </div>
+        </div>`;
+        leaveList.appendChild(li);
+      });
+    }
+
+    // ---------- Performance Chart ----------
+    const utilCtx = document.getElementById('chartUtil');
+    const utilChart = new Chart(utilCtx, {
+      type: 'doughnut',
+      data: { labels:['บันทึกแล้ว','เหลืออยู่'], datasets:[{ data:[0,100], borderWidth:0 }]},
+      options: { responsive:true, maintainAspectRatio:false, cutout:'70%', plugins:{legend:{display:false}} }
+    });
+
+    // ---------- Drawer basic ----------
+    const drawer = document.getElementById('drawer');
+    function openDrill(title, html){ document.getElementById('drawerTitle').textContent = title; document.getElementById('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+
+    // ---------- Initial Render ----------
+    renderSheet();
+
+    // ---------- Export PNG ----------
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-employee-workspace.png'; a.click();
+      }
+    });
+  </script>
+</body>
+</html>

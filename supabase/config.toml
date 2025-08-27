@@ -1,0 +1,44 @@
+# supabase/config.toml
+# TPR Digital Hub
+# Functions are secured with JWT. CORS preflight returns 204.
+
+
+[functions.invite-user]
+verify_jwt = true
+import_map = "./functions/invite-user/deno.json"
+entrypoint = "./functions/invite-user/index.ts"
+
+[functions.change-role]
+verify_jwt = true
+import_map = "./functions/change-role/deno.json"
+entrypoint = "./functions/change-role/index.ts"
+
+[functions.create-project]
+verify_jwt = true
+import_map = "./functions/create-project/deno.json"
+entrypoint = "./functions/create-project/index.ts"
+
+[functions.add-item]
+verify_jwt = true
+import_map = "./functions/add-item/deno.json"
+entrypoint = "./functions/add-item/index.ts"
+
+[functions.set-item-field]
+verify_jwt = true
+import_map = "./functions/set-item-field/deno.json"
+entrypoint = "./functions/set-item-field/index.ts"
+
+[functions.change-status]
+verify_jwt = true
+import_map = "./functions/change-status/deno.json"
+entrypoint = "./functions/change-status/index.ts"
+
+[functions.log-time]
+verify_jwt = true
+import_map = "./functions/log-time/deno.json"
+entrypoint = "./functions/log-time/index.ts"
+
+[functions.rollup-project-cost]
+verify_jwt = true
+import_map = "./functions/rollup-project-cost/deno.json"
+entrypoint = "./functions/rollup-project-cost/index.ts"

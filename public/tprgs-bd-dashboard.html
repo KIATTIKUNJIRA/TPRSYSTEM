@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Business Development / Sales Manager Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.72rem; }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .link{ color:#0ea5e9 }
+    .row:hover{ background:#f8fafc }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Header -->
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">BD</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">Business Development / Sales Manager • Sales Pipeline & CRM</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option value="QTD">ไตรมาสนี้</option>
+          <option value="MTD" selected>เดือนนี้</option>
+          <option value="YTD">ตั้งแต่ต้นปี</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- Top KPIs -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="card">
+        <div class="text-xs text-slate-500">มูลค่ากระบวนการขายรวม (Pipeline Value)</div>
+        <div class="text-2xl font-semibold mono" id="kpiPipeline">฿-</div>
+        <div class="text-xs text-slate-500">รวมทุกขั้นตอน</div>
+      </div>
+      <div class="card">
+        <div class="text-xs text-slate-500">อัตราชนะ (Win Rate)</div>
+        <div class="text-2xl font-semibold mono" id="kpiWinRate">- %</div>
+        <div class="text-xs text-slate-500">เฉพาะดีลที่ปิดแล้วในช่วงเลือก</div>
+      </div>
+      <div class="card">
+        <div class="text-xs text-slate-500">Proposals ต้องติดตามภายใน 7 วัน</div>
+        <div class="text-2xl font-semibold mono" id="kpiFollow">- รายการ</div>
+        <div class="text-xs text-slate-500">ไม่รวมที่ชนะ/แพ้แล้ว</div>
+      </div>
+    </section>
+
+    <!-- Funnel + Win/Loss -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="card lg:col-span-8">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">1) Sales Pipeline Funnel</div>
+          <div class="text-xs text-slate-500">Lead → Prospecting → Proposal → Negotiation → Won/Lost</div>
+        </div>
+        <div class="h-72"><canvas id="chartFunnel"></canvas></div>
+        <div class="text-xs text-slate-500 mt-1">* ใช้แท่งลดหลั่นจำลอง Funnel เพื่อความเข้ากันได้</div>
+      </div>
+      <div class="card lg:col-span-4">
+        <div class="font-semibold mb-2">Win / Loss Rate</div>
+        <div class="h-64"><canvas id="chartWinLoss"></canvas></div>
+        <div class="text-xs text-slate-500 mt-1">สัดส่วนดีลที่ชนะเทียบกับแพ้</div>
+      </div>
+    </section>
+
+    <!-- Opportunities & Follow-ups -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="card lg:col-span-7">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">2) Opportunity List</div>
+          <div class="flex items-center gap-2">
+            <input id="search" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="ค้นหา: ลูกค้า/โปรเจกต์"/>
+            <select id="stageFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+              <option value="">ทุกขั้นตอน</option>
+              <option>Lead</option>
+              <option>Prospecting</option>
+              <option>Proposal Sent</option>
+              <option>Negotiation</option>
+              <option>Won</option>
+              <option>Lost</option>
+            </select>
+          </div>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="text-slate-500">
+            <tr>
+              <th class="text-left py-2">ชื่อลูกค้า / โอกาส</th>
+              <th class="text-left py-2">ขั้นตอน</th>
+              <th class="text-right py-2">Est. Value</th>
+              <th class="text-right py-2">Prob.</th>
+              <th class="text-right py-2">ติดตาม</th>
+            </tr>
+          </thead>
+          <tbody id="oppBody"></tbody>
+        </table>
+      </div>
+      <div class="card lg:col-span-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">3) Proposals to Follow-Up (7 วัน)</div>
+          <button id="btn-follow-csv" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs">Export CSV</button>
+        </div>
+        <ul id="followList" class="space-y-2 text-sm"></ul>
+      </div>
+    </section>
+
+    <!-- Key Client Activity -->
+    <section class="card">
+      <div class="font-semibold mb-2">4) Key Client Activity – กิจกรรมล่าสุดของลูกค้ารายสำคัญ</div>
+      <ul id="activity" class="space-y-3 text-sm"></ul>
+    </section>
+  </main>
+
+  <!-- Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • Business Development • mock data
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    function $(id){return document.getElementById(id)}
+
+    // ---------------- Mock Data ----------------
+    const opportunities = [
+      {id:'O-1001', name:'ทางด่วนตะวันออก ส่วน C', client:'Dept. of Highway', stage:'Lead', value: 12500000, prob:15, next:'2025-08-21'},
+      {id:'O-1002', name:'สถานี Interchange เมืองใหม่', client:'Metro Dev Co.', stage:'Prospecting', value: 8800000, prob:25, next:'2025-08-22'},
+      {id:'O-1003', name:'สะพานข้ามแม่น้ำ X', client:'River Authority', stage:'Proposal Sent', value: 16500000, prob:50, next:'2025-08-19'},
+      {id:'O-1004', name:'โรงพยาบาลชุมชน Y', client:'Health Infra Fund', stage:'Proposal Sent', value: 6200000, prob:40, next:'2025-08-20'},
+      {id:'O-1005', name:'อาคารสำนักงาน Q', client:'Q Estates', stage:'Negotiation', value: 9700000, prob:65, next:'2025-08-23'},
+      {id:'O-1006', name:'ท่าเรือโลจิสติกส์ Z', client:'Port Z PLC', stage:'Won', value: 21000000, prob:100, next:'2025-08-15'},
+      {id:'O-1007', name:'แนวเส้นทางรถไฟ LRT', client:'City Transit', stage:'Lost', value: 14400000, prob:0, next:'2025-08-10'},
+      {id:'O-1008', name:'ศูนย์ราชการส่วนต่อขยาย', client:'G-Works', stage:'Negotiation', value: 12000000, prob:70, next:'2025-08-27'},
+      {id:'O-1009', name:'คอมเพล็กซ์ Mixed-Use', client:'Sunrise Group', stage:'Prospecting', value: 5600000, prob:20, next:'2025-08-18'},
+    ];
+
+    const activities = [
+      {when:'วันนี้ 09:40', client:'Metro Dev Co.', summary:'โทรติดตามเรื่อง TOR และ timeline ฉบับปรับปรุง', by:'นเรศ'},
+      {when:'เมื่อวาน 16:05', client:'River Authority', summary:'ส่งข้อเสนอเทคนิคฉบับแก้ไข V2', by:'สุรีย์'},
+      {when:'เมื่อวาน 10:20', client:'Q Estates', summary:'นัดประชุมขอรายละเอียดค่าใช้จ่าย', by:'ศศิ'},
+      {when:'2 วันก่อน', client:'Port Z PLC', summary:'ลงนามสัญญา – ดีลชนะ', by:'ทีมขาย'},
+    ];
+
+    // ---------------- KPI helpers ----------------
+    function thb(n){ return '฿ ' + n.toLocaleString('th-TH'); }
+    function pct(n){ return n.toLocaleString('th-TH', {maximumFractionDigits:0}) + '%'; }
+
+    // ---------------- Pipeline / KPIs ----------------
+    let funnelChart, wlChart;
+    function rebuildKpis(){
+      const pipeline = opportunities.filter(o=>!['Won','Lost'].includes(o.stage)).reduce((s,o)=> s+o.value, 0);
+      $('kpiPipeline').textContent = thb(pipeline);
+
+      const closed = opportunities.filter(o=>['Won','Lost'].includes(o.stage));
+      const won = closed.filter(o=>o.stage==='Won').length;
+      const winRate = closed.length ? Math.round((won/closed.length)*100) : 0;
+      $('kpiWinRate').textContent = winRate + ' %';
+
+      const now = new Date();
+      const in7d = opportunities.filter(o=>o.stage==='Proposal Sent' && (new Date(o.next) - now) <= 7*24*3600*1000 && (new Date(o.next) >= new Date(now.getFullYear(),now.getMonth(), now.getDate()-1)));
+      $('kpiFollow').textContent = in7d.length + ' รายการ';
+    }
+
+    function renderFunnel(){
+      const stages = ['Lead','Prospecting','Proposal Sent','Negotiation'];
+      const counts = stages.map(s=> opportunities.filter(o=>o.stage===s).length);
+      if(funnelChart) funnelChart.destroy();
+      funnelChart = new Chart($('chartFunnel'), {
+        type:'bar',
+        data:{ labels: stages, datasets:[{ label:'จำนวนโอกาส', data:counts, backgroundColor:['#bae6fd','#93c5fd','#60a5fa','#3b82f6'] }]},
+        options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{ precision:0 } } } }
+      });
+    }
+
+    function renderWinLoss(){
+      const won = opportunities.filter(o=>o.stage==='Won').length;
+      const lost = opportunities.filter(o=>o.stage==='Lost').length;
+      if(wlChart) wlChart.destroy();
+      wlChart = new Chart($('chartWinLoss'), {
+        type:'doughnut',
+        data:{ labels:['Won','Lost'], datasets:[{ data:[won, lost], backgroundColor:['#22c55e','#ef4444'] }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } } }
+      });
+    }
+
+    // ---------------- Opportunity List ----------------
+    function renderOpp(){
+      const body = $('oppBody'); body.innerHTML='';
+      const q = $('search').value.toLowerCase();
+      const sf = $('stageFilter').value;
+      const rows = opportunities.filter(o=>(!sf || o.stage===sf) && (o.name.toLowerCase().includes(q) || o.client.toLowerCase().includes(q)));
+      rows.sort((a,b)=> b.value - a.value);
+      rows.forEach(o=>{
+        const tr = document.createElement('tr'); tr.className='row';
+        tr.innerHTML = `
+          <td class="py-2">
+            <a href="#" class="link" data-opp="${o.id}">${o.name}</a>
+            <div class="text-xs text-slate-500">${o.client}</div>
+          </td>
+          <td class="py-2">${o.stage}</td>
+          <td class="py-2 text-right mono">${thb(o.value)}</td>
+          <td class="py-2 text-right">${o.prob}%</td>
+          <td class="py-2 text-right mono">${o.next}</td>`;
+        body.appendChild(tr);
+      });
+
+      document.querySelectorAll('[data-opp]').forEach(a=> a.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const o = opportunities.find(x=> x.id === a.getAttribute('data-opp'));
+        openDrill('รายละเอียด Opportunity', `
+          <div class="space-y-3">
+            <div class="font-medium">${o.name}</div>
+            <div class="text-sm text-slate-500">${o.client} • ขั้นตอน: ${o.stage} • โอกาสชนะ ${o.prob}%</div>
+            <div>มูลค่าประมาณ: <b class="mono">${thb(o.value)}</b></div>
+            <div>วันที่ติดตามครั้งถัดไป: <b class="mono">${o.next}</b></div>
+            <div class="flex gap-2">
+              <button class="px-3 py-2 rounded-xl bg-sky-600 text-white">เพิ่มบันทึกกิจกรรม</button>
+              <button class="px-3 py-2 rounded-xl bg-emerald-600 text-white">อัปเดตขั้นตอน</button>
+            </div>
+          </div>
+        `);
+      }));
+    }
+
+    // ---------------- Follow-ups ----------------
+    function renderFollow(){
+      const now = new Date();
+      const arr = opportunities.filter(o=>o.stage==='Proposal Sent').filter(o=> (new Date(o.next) - now) <= 7*24*3600*1000 );
+      const ul = $('followList'); ul.innerHTML='';
+      arr.sort((a,b)=> new Date(a.next)-new Date(b.next));
+      arr.forEach(o=>{
+        const li = document.createElement('li');
+        const due = new Date(o.next);
+        const overdue = (due < new Date());
+        li.innerHTML = `
+          <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200">
+            <div>
+              <div class="font-medium">${o.name}</div>
+              <div class="text-xs text-slate-500">${o.client} • ติดตาม: <span class="mono ${overdue?'text-red-600':''}">${o.next}</span></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="mono text-right">${thb(o.value)}</div>
+              <button class="px-3 py-1.5 rounded-xl text-xs ${overdue?'bg-red-600 text-white':'bg-slate-900 text-white'}" data-done="${o.id}">${overdue?'ติดตามด่วน':'ติดตามแล้ว'}</button>
+            </div>
+          </div>`;
+        ul.appendChild(li);
+      });
+
+      $('btn-follow-csv').onclick = ()=>{
+        const rows = [['ID','Opportunity','Client','Value','NextFollow']].concat(arr.map(o=>[o.id,o.name,o.client,o.value,o.next]));
+        const csv = rows.map(r=>r.join(',')).join('\\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tprgs-proposal-followups.csv'; a.click(); URL.revokeObjectURL(a.href);
+      };
+
+      document.querySelectorAll('[data-done]').forEach(b=> b.addEventListener('click', ()=>{
+        b.textContent = 'บันทึกแล้ว'; b.className = 'px-3 py-1.5 rounded-xl text-xs bg-emerald-600 text-white';
+      }));
+    }
+
+    // ---------------- Activity ----------------
+    function renderActivity(){
+      const ul = $('activity'); ul.innerHTML='';
+      activities.forEach(a=>{
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-2 h-2 rounded-full mt-2" style="background:#0ea5e9"></div>
+            <div>
+              <div class="font-medium">${a.client}</div>
+              <div class="text-sm">${a.summary}</div>
+              <div class="text-xs text-slate-500">${a.when} • โดย ${a.by}</div>
+            </div>
+          </div>`;
+        ul.appendChild(li);
+      });
+    }
+
+    // ---------------- Drawer helpers ----------------
+    const drawer = $('drawer');
+    function openDrill(title, html){ $('drawerTitle').textContent = title; $('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+
+    // ---------------- Export PNG ----------------
+    $('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-bd-dashboard.png'; a.click();
+      }
+    });
+
+    // ---------------- Init ----------------
+    function init(){
+      rebuildKpis();
+      renderFunnel();
+      renderWinLoss();
+      renderOpp();
+      renderFollow();
+      renderActivity();
+    }
+    $('search').addEventListener('input', renderOpp);
+    $('stageFilter').addEventListener('change', renderOpp);
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – Team Lead Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.72rem; }
+    .kpi{ font-weight:700; font-size:1.3rem; }
+    .bar{ height:10px; border-radius:999px; background:#e2e8f0; overflow:hidden }
+    .bar > i{ display:block; height:100%; background:var(--brand) }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">TL</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">แดชบอร์ดหัวหน้าฝ่าย (Team Lead)</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option selected>วันนี้</option>
+          <option>สัปดาห์นี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- กลุ่ม 1 -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">กลุ่มที่ 1: การจัดการและติดตาม Task ประจำวัน</h2>
+        <span class="text-xs text-slate-500">ปรับปรุงล่าสุด: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Team To-Do -->
+        <div class="card lg:col-span-7">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Team's To‑Do List</div>
+            <div class="flex items-center gap-1 text-xs">
+              <button class="px-2 py-1 rounded-lg border border-slate-200 data-[active=true]:bg-slate-900 data-[active=true]:text-white" data-filter="all" data-active="true">ทั้งหมด</button>
+              <button class="px-2 py-1 rounded-lg border border-slate-200" data-filter="progress">กำลังทำ</button>
+              <button class="px-2 py-1 rounded-lg border border-slate-200" data-filter="overdue">ค้าง</button>
+              <button class="px-2 py-1 rounded-lg border border-slate-200" data-filter="today">วันนี้</button>
+              <button class="px-2 py-1 rounded-lg border border-slate-200" data-filter="week">สัปดาห์นี้</button>
+            </div>
+          </div>
+          <ul id="teamList" class="space-y-2 text-sm"></ul>
+        </div>
+
+        <!-- My To-Do -->
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">My To‑Do List</div>
+          <ul id="myList" class="space-y-2 text-sm"></ul>
+          <div class="text-xs text-slate-500 mt-2">* หัวหน้าฝ่ายมักทั้ง “วางแผน” และ “ลงมือทำ” ได้</div>
+        </div>
+
+        <!-- Overdue by Member -->
+        <div class="card lg:col-span-7">
+          <div class="font-semibold mb-2">Overdue Tasks by Team Member</div>
+          <div id="overdueBy" class="space-y-2 text-sm"></div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">Activity Feed</div>
+          <ul id="feed" class="space-y-2 text-sm"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่ม 2 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 2: การติดตามชั่วโมงทำงานและงบประมาณ (Micro)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Spent vs Budgeted -->
+        <div class="card lg:col-span-7">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Spent vs. Budgeted Hours (Work Packages)</div>
+            <button class="text-sky-600 text-sm" data-drill="wp">ดูรายละเอียด →</button>
+          </div>
+          <div class="h-64"><canvas id="chartWP"></canvas></div>
+          <div class="text-xs text-slate-500 mt-2">* แสดงเฉพาะก้อนงานที่ทีมของคุณรับผิดชอบ</div>
+        </div>
+
+        <!-- Timesheet Review & Approval -->
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">Timesheet Review & Approval</div>
+          <ul id="timesheets" class="space-y-2 text-sm"></ul>
+          <div class="text-xs text-slate-500 mt-2">คลิก “ดู” เพื่อตรวจ แล้วกด “อนุมัติ/ตีกลับ”</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- กลุ่ม 3 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">กลุ่มที่ 3: การดูแลทีมขนาดเล็ก</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Team Availability -->
+        <div class="card lg:col-span-5">
+          <div class="font-semibold mb-2">Team Availability (วันนี้)</div>
+          <ul id="avail" class="space-y-2 text-sm"></ul>
+        </div>
+
+        <!-- Submitted Expenses -->
+        <div class="card lg:col-span-7">
+          <div class="font-semibold mb-2">Submitted Expenses</div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">ผู้ส่ง</th><th class="text-left py-2">รายการ</th><th class="text-right py-2">จำนวนเงิน</th><th class="text-right py-2">การจัดการ</th></tr>
+            </thead>
+            <tbody id="expenses"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drawer -->
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: Team Lead
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // -------- Mock Data --------
+    const myName = 'วิชญ์'; // หัวหน้าฝ่าย
+    const teamMembers = ['วิชญ์','สารี','เจ','นิว','ก้าว','ไอซ์'];
+    const tasks = [
+      {id:1, title:'UAT ฟีเจอร์ใบเสนอราคา', assignee:'สารี', project:'PRJ-201', status:'progress', dueType:'today'},
+      {id:2, title:'ออกแบบหน้า Dashboard ย่อย', assignee:'เจ', project:'PRJ-205', status:'progress', dueType:'week'},
+      {id:3, title:'แก้บั๊กการล็อกอิน (Mobile)', assignee:'นิว', project:'PRJ-201', status:'overdue', dueType:'overdue'},
+      {id:4, title:'Review API Spec v2', assignee:'วิชญ์', project:'PRJ-205', status:'progress', dueType:'today', mine:true},
+      {id:5, title:'เขียน Test Case Sprint 8', assignee:'ก้าว', project:'PRJ-209', status:'progress', dueType:'week'},
+      {id:6, title:'ประกอบเอกสารส่งบิลรอบเดือน', assignee:'ไอซ์', project:'PRJ-199', status:'overdue', dueType:'overdue'},
+      {id:7, title:'เตรียมประชุมลูกค้า Delta', assignee:'วิชญ์', project:'PRJ-205', status:'progress', dueType:'week', mine:true},
+      {id:8, title:'ปรับ CI/CD pipeline', assignee:'เจ', project:'PRJ-210', status:'progress', dueType:'today'}
+    ];
+
+    const feed = [
+      {msg:'สารี บันทึกเวลา 2 ชม. ใน PRJ-201 • UAT', time:'09:25'},
+      {msg:'เจ อัปเดตสถานะ “ปรับ CI/CD pipeline” → กำลังทำ', time:'09:10'},
+      {msg:'นิว คอมเมนต์ในงาน “แก้บั๊กการล็อกอิน”', time:'08:55'},
+      {msg:'ไอซ์ แนบหลักฐานค่าเดินทาง 120฿', time:'08:40'}
+    ];
+
+    const workPackages = [
+      {code:'WP‑A', label:'UAT + ปรับปรุง UI', budget:60, spent:42},
+      {code:'WP‑B', label:'Back‑end Integration', budget:80, spent:66},
+      {code:'WP‑C', label:'Deployment & QA', budget:40, spent:38},
+      {code:'WP‑D', label:'Documentation', budget:24, spent:10}
+    ];
+
+    const timesheets = [
+      {who:'สารี', project:'PRJ-201', hours:3.5, note:'UAT – flow การชำระเงิน', status:'pending'},
+      {who:'เจ', project:'PRJ-210', hours:2.0, note:'ตั้งค่า Github action', status:'pending'},
+      {who:'นิว', project:'PRJ-201', hours:1.5, note:'ทดสอบ login', status:'pending'}
+    ];
+
+    const availability = [
+      {name:'สารี', status:'Available'},
+      {name:'เจ', status:'WFH'},
+      {name:'นิว', status:'Sick'},
+      {name:'ก้าว', status:'Available'},
+      {name:'ไอซ์', status:'PTO'},
+    ];
+
+    const expenses = [
+      {who:'ไอซ์', item:'ค่าเดินทางประชุมลูกค้า', amount:120},
+      {who:'สารี', item:'ค่าสมุดบันทึก/สติ๊กเกอร์', amount:85},
+      {who:'ก้าว', item:'ค่าอินเตอร์เน็ต (ชดเชย)', amount:450},
+    ];
+
+    // -------- Utilities --------
+    function pillByStatus(s){
+      if(s==='overdue') return '<span class="pill bg-red-100 text-red-700">ค้าง</span>';
+      if(s==='progress') return '<span class="pill bg-sky-100 text-sky-700">กำลังทำ</span>';
+      return '<span class="pill bg-slate-100 text-slate-700">'+s+'</span>';
+    }
+    function pillByDue(d){
+      if(d==='today') return '<span class="pill bg-amber-100 text-amber-700">วันนี้</span>';
+      if(d==='week') return '<span class="pill bg-emerald-100 text-emerald-700">สัปดาห์นี้</span>';
+      if(d==='overdue') return '<span class="pill bg-red-100 text-red-700">เลยกำหนด</span>';
+      return '';
+    }
+
+    // -------- Render Team To‑Do --------
+    const teamList = document.getElementById('teamList');
+    const myList = document.getElementById('myList');
+    const overdueBy = document.getElementById('overdueBy');
+
+    function renderTeam(filter='all'){
+      teamList.innerHTML = '';
+      tasks.filter(t=> filter==='all' ? true : (t.status===filter || t.dueType===filter))
+        .forEach(t=>{
+          const li = document.createElement('li');
+          li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+            <div>
+              <div class="font-medium">${t.title}</div>
+              <div class="text-xs text-slate-500">${t.project} • ผู้รับผิดชอบ: ${t.assignee}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${pillByStatus(t.status)} ${pillByDue(t.dueType)}
+              <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-open="${t.id}">ดู</button>
+            </div>
+          </div>`;
+          teamList.appendChild(li);
+        });
+      // active pill
+      document.querySelectorAll('[data-filter]').forEach(b=> b.setAttribute('data-active', (b.getAttribute('data-filter')===filter)));
+    }
+
+    function renderMine(){
+      myList.innerHTML = '';
+      tasks.filter(t=>t.mine).forEach(t=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div>
+            <div class="font-medium">${t.title}</div>
+            <div class="text-xs text-slate-500">${t.project} • ของฉัน</div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${pillByStatus(t.status)} ${pillByDue(t.dueType)}
+            <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs" data-done="${t.id}">ทำเสร็จ</button>
+          </div>
+        </div>`;
+        myList.appendChild(li);
+      });
+    }
+
+    function renderOverdueBy(){
+      const map = {};
+      tasks.filter(t=>t.status==='overdue').forEach(t=>{
+        map[t.assignee] = map[t.assignee] || [];
+        map[t.assignee].push(t);
+      });
+      overdueBy.innerHTML = '';
+      Object.keys(map).forEach(name=>{
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `<div class="mb-1 font-medium">${name}</div>`;
+        map[name].forEach(t=>{
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between gap-2 p-2 rounded-lg border border-amber-200 bg-amber-50';
+          row.innerHTML = `<div class="text-sm">${t.title} <span class="text-xs text-slate-500">(${t.project})</span></div>
+                           <span class="pill bg-red-100 text-red-700">เลยกำหนด</span>`;
+          wrap.appendChild(row);
+        });
+        overdueBy.appendChild(wrap);
+      });
+      if(!Object.keys(map).length){
+        overdueBy.innerHTML = '<div class="text-sm text-slate-500">ไม่มีงานค้าง 🎉</div>';
+      }
+    }
+
+    // Initial render
+    renderTeam('all'); renderMine(); renderOverdueBy();
+
+    // Filters
+    document.querySelectorAll('[data-filter]').forEach(b=>{
+      b.addEventListener('click', ()=> renderTeam(b.getAttribute('data-filter')));
+    });
+
+    // Mark done for my tasks
+    myList.addEventListener('click', e=>{
+      const id = e.target.getAttribute('data-done');
+      if(!id) return;
+      const t = tasks.find(x=> x.id==id);
+      if(t){ t.status='progress'; t.dueType='week'; e.target.closest('li').style.opacity=.5; }
+    });
+
+    // Activity Feed
+    const $feed = document.getElementById('feed');
+    feed.forEach(f=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+        <div>${f.msg}</div><div class="text-xs text-slate-500">${f.time}</div>
+      </div>`;
+      $feed.appendChild(li);
+    });
+
+    // Availability
+    const $avail = document.getElementById('avail');
+    availability.forEach(a=>{
+      const color = a.status==='Available' ? 'bg-emerald-100 text-emerald-700' :
+                    a.status==='WFH' ? 'bg-sky-100 text-sky-700' :
+                    a.status==='PTO' ? 'bg-violet-100 text-violet-700' :
+                    'bg-red-100 text-red-700';
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+        <div>${a.name}</div>
+        <span class="pill ${color}">${a.status}</span>
+      </div>`;
+      $avail.appendChild(li);
+    });
+
+    // Expenses
+    const $exp = document.getElementById('expenses');
+    expenses.forEach(ex=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="py-2">${ex.who}</td>
+                      <td class="py-2">${ex.item}</td>
+                      <td class="py-2 text-right">฿ ${ex.amount.toLocaleString('th-TH')}</td>
+                      <td class="py-2 text-right">
+                        <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-view="exp">ดู</button>
+                        <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">อนุมัติ</button>
+                      </td>`;
+      $exp.appendChild(tr);
+    });
+
+    // Timesheets
+    const $ts = document.getElementById('timesheets');
+    timesheets.forEach(ts=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+        <div>
+          <div class="font-medium">${ts.who} • ${ts.hours} ชม.</div>
+          <div class="text-xs text-slate-500">${ts.project} • ${ts.note}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-open-ts="${ts.who}">ดู</button>
+          <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">อนุมัติ</button>
+          <button class="px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs">ตีกลับ</button>
+        </div>
+      </div>`;
+      $ts.appendChild(li);
+    });
+
+    // -------- Charts (fixed height) --------
+    const wpCtx = document.getElementById('chartWP');
+    new Chart(wpCtx, {
+      type:'bar',
+      data:{
+        labels:workPackages.map(w=>w.code),
+        datasets:[
+          {label:'Budget (hrs)', data:workPackages.map(w=>w.budget), backgroundColor:'rgba(14,165,233,.5)'},
+          {label:'Spent (hrs)', data:workPackages.map(w=>w.spent), backgroundColor:'rgba(239,68,68,.5)'}
+        ]
+      },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+    });
+
+    // -------- Drill Drawer --------
+    const drawer = document.getElementById('drawer');
+    function openDrill(title, html){ document.getElementById('drawerTitle').textContent = title; document.getElementById('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+    document.body.addEventListener('click', e=>{
+      if(e.target.matches('[data-open]')){
+        const id = e.target.getAttribute('data-open');
+        const t = tasks.find(x=> String(x.id)===id);
+        if(t) openDrill('รายละเอียดงาน', `<div><div class="font-medium mb-1">${t.title}</div>
+          <div class="text-sm text-slate-600">${t.project} • ผู้รับผิดชอบ: ${t.assignee}</div>
+          <div class="mt-2">${pillByStatus(t.status)} ${pillByDue(t.dueType)}</div></div>`);
+      }
+      if(e.target.matches('[data-open-ts]')){
+        const who = e.target.getAttribute('data-open-ts');
+        const ts = timesheets.find(x=> x.who===who);
+        if(ts) openDrill('Timesheet', `<div>ผู้ส่ง: <b>${ts.who}</b><br/>โครงการ: ${ts.project}<br/>ชั่วโมง: ${ts.hours}<br/>รายละเอียด: ${ts.note}</div>`);
+      }
+      if(e.target.matches('[data-close]')) closeDrill();
+    });
+
+    // -------- Export PNG --------
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-teamlead-dashboard.png'; a.click();
+      }
+    });
+  </script>
+</body>
+</html>

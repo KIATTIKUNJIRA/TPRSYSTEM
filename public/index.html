@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TPRGS – Link Hub & Previews</title>
+  <style>
+    :root{--bg:#f7f9fc;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--pri:#2563eb;--ok:#16a34a;--warn:#f59e0b;--bad:#ef4444}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;color:var(--text)}
+    header{position:sticky;top:0;background:rgba(247,249,252,.8);backdrop-filter:blur(6px);border-bottom:1px solid #e5e7eb}
+    .wrap{max-width:1200px;margin:auto;padding:20px}
+    h1{font-size:20px;margin:8px 0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .col-4{grid-column:span 4} .col-6{grid-column:span 6} .col-12{grid-column:span 12}
+    @media(max-width:900px){.col-4,.col-6{grid-column:span 12}}
+    .card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;padding:18px;box-shadow:0 8px 20px rgba(31,41,55,.06)}
+    .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .title small{color:var(--muted)}
+    .links a{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:10px;text-decoration:none;color:var(--text);background:#fff}
+    .links a:hover{border-color:#cbd5e1;background:#f8fafc}
+    .badge{font-size:12px;padding:3px 8px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:var(--muted)}
+    .preview{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;background:#fbfdff}
+    .pill{font-size:12px;padding:3px 8px;border-radius:999px;color:#fff}
+    .ok{background:var(--ok)} .warn{background:var(--warn)} .bad{background:var(--bad)} .new{background:var(--pri)}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    input[type=text]{padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;min-width:180px}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap row" style="justify-content:space-between">
+      <div class="row">
+        <strong>TPRGS LINK HUB</strong>
+        <span class="badge">ศูนย์รวมลิงก์ + Preview</span>
+      </div>
+      <div class="row">
+        <span class="muted">Project ID ตัวอย่าง:</span>
+        <input id="projId" type="text" value="P-2501" />
+        <span class="muted">เปลี่ยนค่าแล้วลิงก์จะอัปเดตอัตโนมัติ</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <!-- Projects group -->
+      <section class="card col-6">
+        <div class="title">
+          <h2>โครงการ (Projects)</h2>
+          <div class="row">
+            <span class="pill new">อัปเดตลิงก์ Project Detail</span>
+          </div>
+        </div>
+        <div class="links" id="projectLinks">
+          <!-- dynamic by JS -->
+        </div>
+        <div class="preview">
+          <small class="muted">Preview: ลิงก์จะชี้ไปยัง ID ที่ระบุด้านบน</small>
+        </div>
+      </section>
+
+      <!-- Dashboards -->
+      <section class="card col-6">
+        <div class="title">
+          <h2>แดชบอร์ดหลัก (Dashboards)</h2>
+          <small>มุมมองตามบทบาท</small>
+        </div>
+        <div class="links">
+          <a href="tprgs-ceo-dashboard.html"><b>CEO</b> – Financial & Portfolio</a>
+          <a href="tprgs-manager-dashboard.html"><b>Department Manager</b> – Projects & Team</a>
+          <a href="tprgs-teamlead-dashboard.html"><b>Team Lead</b> – Daily Ops</a>
+          <a href="tprgs-team-member-dashboard.html"><b>Team Member</b> – Digital Workspace</a>
+          <a href="tprgs-hr-dashboard.html"><b>HR</b> – Time & People</a>
+          <a href="tprgs-accounting-dashboard.html"><b>Accounting</b> – AR/AP/Close</a>
+          <a href="tprgs-resource-manager-dashboard.html"><b>Resource Manager</b> – Capacity</a>
+          <a href="tprgs-bd-dashboard.html"><b>BD/Sales</b> – Pipeline</a>
+          <a href="tprgs-client-portal-dashboard.html"><b>Client Portal</b> – View Only</a>
+        </div>
+      </section>
+
+      <!-- System -->
+      <section class="card col-12">
+        <div class="title">
+          <h2>ระบบอื่น ๆ / โครงร่าง</h2>
+          <small class="muted">ไว้สำหรับขยายในอนาคต</small>
+        </div>
+        <div class="row">
+          <span class="badge">Mock-only</span>
+          <span class="badge">Static HTML</span>
+          <span class="badge">No Backend</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const projectLinks = document.getElementById('projectLinks');
+    const projInput = document.getElementById('projId');
+    const build = (id) => {
+      projectLinks.innerHTML = `
+        <a href="tprgs-projects-list.html"><b>Projects List</b> – รายชื่อโครงการทั้งหมด <span class="badge">พร้อมมูลค่า</span></a>
+        <a href="tprgs-project-dashboard.html?id=${encodeURIComponent(id)}"><b>Project Dashboard</b> – ภาพรวมโครงการ (ID: ${id})</a>
+        <a href="tprgs-sub-projects.html?parentId=${encodeURIComponent(id)}"><b>Project Workstreams</b> – แผนงานโครงการ (Parent: ${id})</a>
+        <a href="tprgs-project-detail.html?id=${encodeURIComponent(id)}"><b>Project Detail</b> – ตั้งค่าโครงการ (ID: ${id}) <span class="pill ok">ใหม่</span></a>
+      `;
+    };
+    build(projInput.value);
+    projInput.addEventListener('input', (e)=> build(e.target.value.trim() || 'P-2501'));
+  </script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TPRGS – HR Dashboard (Mock)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --brand:#0ea5e9; --accent:#a78bfa; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --muted:#64748b; }
+    .card{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .pill{ display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.72rem; }
+    .kpi{ font-size:1.3rem; font-weight:700; }
+    .bar{ height:10px; border-radius:999px; background:#e2e8f0; overflow:hidden }
+    .bar > i{ display:block; height:100%; background:var(--brand) }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .cal{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+    .cal .cell{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px; min-height:58px; position:relative; }
+    .cal .dow{ font-size:.7rem; color:#64748b; text-align:center; background:transparent; border:none; min-height:auto; padding:0 }
+    .dot{ width:8px; height:8px; border-radius:999px; display:inline-block; margin-right:4px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:#0ea5e9">HR</div>
+        <div>
+          <div class="font-semibold">TPRGS.COM</div>
+          <div class="text-xs text-slate-500">แดชบอร์ดฝ่ายบุคคล (HR) • Personnel Administration</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="range" class="px-3 py-2 rounded-xl border border-slate-200 text-sm">
+          <option value="week">สัปดาห์นี้</option>
+          <option value="month" selected>เดือนนี้</option>
+          <option value="quarter">ไตรมาสนี้</option>
+        </select>
+        <button id="btn-export" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm">ส่งออก (PNG)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">1) การบริหารจัดการเวลาและการเข้าทำงาน (Time & Attendance)</h2>
+        <span class="text-xs text-slate-500">ปรับปรุงล่าสุด: วันนี้ • จำลองข้อมูล</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Timesheet Compliance Dashboard</div>
+            <button class="text-sky-600 text-sm" data-drill="tsc">ดูรายละเอียด →</button>
+          </div>
+          <div class="grid grid-cols-5 gap-3 items-center">
+            <div class="col-span-2 h-44"><canvas id="chartTSC"></canvas></div>
+            <div class="col-span-3 space-y-2 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600">ส่งครบและอนุมัติแล้ว</span>
+                <span class="kpi text-emerald-600" id="tscApproved">0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600">รออนุมัติ</span>
+                <span class="kpi text-amber-600" id="tscPending">0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600">ยังไม่ส่ง</span>
+                <span class="kpi text-red-600" id="tscMissing">0</span>
+              </div>
+              <div class="text-xs text-slate-500">* ใช้สำหรับรอบเวลาปัจจุบัน</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <table class="w-full text-sm">
+              <thead class="text-slate-500">
+                <tr><th class="text-left py-2">พนักงาน</th><th class="text-left py-2">แผนก</th><th class="text-right py-2">สถานะ</th></tr>
+              </thead>
+              <tbody id="tblTSC"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Company-Wide Leave Calendar</div>
+            <button class="text-sky-600 text-sm" data-drill="leave">ดูทั้งหมด →</button>
+          </div>
+          <div class="flex items-center justify-between mb-2 text-sm">
+            <div id="calTitle" class="font-medium"></div>
+            <div class="flex items-center gap-2 text-xs">
+              <span><span class="dot" style="background:#a78bfa"></span>PTO</span>
+              <span><span class="dot" style="background:#ef4444"></span>Sick</span>
+              <span><span class="dot" style="background:#0ea5e9"></span>Other</span>
+            </div>
+          </div>
+          <div class="cal text-xs" id="calendar"></div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-4">
+          <div class="card">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold">Leave Request Approvals</div>
+              <button class="text-sky-600 text-sm" data-drill="lvapp">ดูทั้งหมด →</button>
+            </div>
+            <ul id="listLeaveReq" class="space-y-2 text-sm"></ul>
+          </div>
+          <div class="card">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold">Overtime Summary (สัปดาห์นี้)</div>
+              <button class="text-sky-600 text-sm" data-drill="ot">รายละเอียด →</button>
+            </div>
+            <div class="h-40"><canvas id="chartOT"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">2) การจัดการข้อมูลพนักงานและทรัพยากร (Employee & Resource)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Employee Center – Shortcuts</div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left" data-drill="onboard">
+              <div class="font-medium">Onboarding</div>
+              <div class="text-xs text-slate-500">เพิ่มพนักงานใหม่</div>
+            </button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left" data-drill="profiles">
+              <div class="font-medium">Edit Profiles</div>
+              <div class="text-xs text-slate-500">ตำแหน่ง/แผนก/อัตรา</div>
+            </button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left" data-drill="offboard">
+              <div class="font-medium">Offboarding</div>
+              <div class="text-xs text-slate-500">ระงับบัญชีลาออก</div>
+            </button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left" data-drill="import">
+              <div class="font-medium">Import/Export</div>
+              <div class="text-xs text-slate-500">CSV สำหรับ HR</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="card lg:col-span-4">
+          <div class="font-semibold mb-2">Anniversaries / Birthdays</div>
+          <ul id="listAB" class="space-y-2 text-sm"></ul>
+        </div>
+
+        <div class="card lg:col-span-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Resource Allocation Overview</div>
+            <button class="text-sky-600 text-sm" data-drill="alloc">ดูรายละเอียด →</button>
+          </div>
+          <div class="h-44"><canvas id="chartAlloc"></canvas></div>
+          <div class="mt-2 text-xs text-slate-500">* On the Bench = ยังไม่ถูกมอบหมายโครงการ</div>
+          <table class="w-full text-sm mt-3">
+            <thead class="text-slate-500">
+              <tr><th class="text-left py-2">พนักงาน</th><th class="text-left py-2">แผนก</th><th class="text-right py-2">Allocation</th></tr>
+            </thead>
+            <tbody id="tblAlloc"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">3) การสนับสนุนการทำเงินเดือน (Payroll Support)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Time Entry Summary for Payroll</div>
+            <div class="flex items-center gap-2">
+              <button id="btn-export-csv" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm">Export CSV</button>
+              <button class="text-sky-600 text-sm" data-drill="payroll">ดูรายละเอียด →</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">ชั่วโมงปกติ (Approved)</div>
+              <div class="kpi mt-1 mono" id="hrsReg">0</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">OT (Approved)</div>
+              <div class="kpi mt-1 mono text-emerald-600" id="hrsOT">0</div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200">
+              <div class="text-sm text-slate-500">การลา (Approved)</div>
+              <div class="kpi mt-1 mono text-amber-600" id="hrsLeave">0</div>
+            </div>
+          </div>
+          <div class="h-48 mt-3"><canvas id="chartPayroll"></canvas></div>
+        </div>
+        <div class="card lg:col-span-6">
+          <div class="font-semibold mb-2">Payroll Review Checklist</div>
+          <ul id="listChecklist" class="space-y-2 text-sm"></ul>
+          <div class="mt-3">
+            <div class="text-xs text-slate-500 mb-1">ความคืบหน้าการปิดรอบ</div>
+            <div class="bar"><i id="chkProgress" style="width:0%"></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">4) การวิเคราะห์และรายงาน (Analytics & Reporting)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="card lg:col-span-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Company-Wide Utilization Rate (Trend)</div>
+            <button class="text-sky-600 text-sm" data-drill="util">ดูรายละเอียด →</button>
+          </div>
+          <div class="h-56"><canvas id="chartUtil"></canvas></div>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Employee Turnover Rate</div>
+          <div class="h-56"><canvas id="chartTurnover"></canvas></div>
+        </div>
+        <div class="card lg:col-span-3">
+          <div class="font-semibold mb-2">Quick Links to HR Reports</div>
+          <div class="grid grid-cols-1 gap-2 text-sm">
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left">รายงานการลา</button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left">รายงานชั่วโมงทำงาน</button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left">รายงานข้อมูลพนักงาน</button>
+            <button class="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left">รายงาน OT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="drawer" class="fixed inset-0 hidden">
+    <div class="absolute inset-0 bg-black/30" data-close></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[500px] bg-white border-l border-slate-200 shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold" id="drawerTitle">รายละเอียด</div>
+        <button class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm" data-close>ปิด</button>
+      </div>
+      <div id="drawerBody" class="mt-4 text-sm"></div>
+    </aside>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-4 py-10 text-center text-xs text-slate-500">
+    © <span id="year"></span> TPRGS.COM • mock data • role-based: HR
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const tscEmployees = [
+      {name:'ศศิธร', dept:'Engineering', status:'approved'},
+      {name:'ธนวัต', dept:'Engineering', status:'pending'},
+      {name:'มยุรี', dept:'Design', status:'missing'},
+      {name:'เจตน์', dept:'Engineering', status:'approved'},
+      {name:'สุรีรัตน์', dept:'Data', status:'approved'},
+      {name:'วรัญญา', dept:'PMO', status:'pending'},
+      {name:'อารยา', dept:'QA', status:'approved'},
+      {name:'ภาณุวัฒน์', dept:'Infra', status:'missing'},
+    ];
+    const leaveEvents = [
+      {date:'YYYY-MM-05', who:'ศศิธร', type:'PTO'},
+      {date:'YYYY-MM-11', who:'ธนวัต', type:'Sick'},
+      {date:'YYYY-MM-18', who:'มยุรี', type:'PTO'},
+      {date:'YYYY-MM-21', who:'เจตน์', type:'Other'},
+      {date:'YYYY-MM-25', who:'อารยา', type:'Sick'},
+    ];
+    const leaveReqs = [
+      {who:'ภาณุวัฒน์', type:'PTO', when:'27–29 ส.ค.', status:'pending'},
+      {who:'มยุรี', type:'Personal', when:'พรุ่งนี้', status:'pending'},
+    ];
+    const otSummary = [
+      {name:'ศศิธร', hours:6},
+      {name:'ธนวัต', hours:4},
+      {name:'เจตน์', hours:3},
+      {name:'อารยา', hours:2},
+      {name:'สุรีรัตน์', hours:2},
+    ];
+    const anniversaries = [
+      {name:'อารยา', what:'ครบรอบ 2 ปี', when:'3 ก.ย.'},
+      {name:'มยุรี', what:'วันเกิด', when:'8 ก.ย.'},
+      {name:'ธนวัต', what:'ครบรอบ 1 ปี', when:'19 ก.ย.'},
+    ];
+    const allocation = {
+      allocated: 78, bench: 22,
+      people:[
+        {name:'ศศิธร', dept:'Engineering', pct:95},
+        {name:'ธนวัต', dept:'Engineering', pct:88},
+        {name:'มยุรี', dept:'Design', pct:64},
+        {name:'อารยา', dept:'QA', pct:72},
+        {name:'ภาณุวัฒน์', dept:'Infra', pct:40},
+      ]
+    };
+    const payroll = { regular: 1320, ot: 140, leave: 96 };
+    const checklist = [
+      {text:'Timesheets ทั้งหมดได้รับการอนุมัติ', done:false},
+      {text:'OT ได้รับอนุมัติครบ', done:false},
+      {text:'การลาทั้งหมดถูกบันทึกแล้ว', done:true},
+      {text:'อัปเดตอัตราเงินเดือน/Cost Rates ที่เปลี่ยน', done:false},
+      {text:'Export ไฟล์ชั่วโมงส่งฝ่ายบัญชี', done:false},
+    ];
+    const utilTrend = { labels:['สัปดาห์ 1','สัปดาห์ 2','สัปดาห์ 3','สัปดาห์ 4','สัปดาห์ 5','สัปดาห์ 6','สัปดาห์ 7','สัปดาห์ 8'],
+                        values:[69,71,73,74,72,75,76,77] };
+    const turnover = { labels:['ม.ค.','มี.ค.','พ.ค.','ก.ค.','ก.ย.','พ.ย.'], values:[1,0,2,1,0,1] };
+
+    const tblTSC = document.getElementById('tblTSC');
+    function renderTSC(){
+      tblTSC.innerHTML='';
+      let approved=0, pending=0, missing=0;
+      tscEmployees.forEach(e=>{
+        if(e.status==='approved') approved++;
+        else if(e.status==='pending') pending++;
+        else missing++;
+        const badge = e.status==='approved' ? '<span class="pill bg-emerald-100 text-emerald-700">อนุมัติแล้ว</span>' :
+                      (e.status==='pending' ? '<span class="pill bg-amber-100 text-amber-700">รออนุมัติ</span>' :
+                                              '<span class="pill bg-red-100 text-red-700">ยังไม่ส่ง</span>');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2">${e.name}</td><td class="py-2">${e.dept}</td><td class="py-2 text-right">${badge}</td>`;
+        tblTSC.appendChild(tr);
+      });
+      document.getElementById('tscApproved').textContent = approved;
+      document.getElementById('tscPending').textContent = pending;
+      document.getElementById('tscMissing').textContent = missing;
+      tscChart.data.datasets[0].data = [approved, pending, missing];
+      tscChart.update();
+    }
+
+    function buildMonthCalendar(){
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const events = leaveEvents.map(x=> ({...x, date: x.date.replace('YYYY', String(year)).replace('MM', String(month+1).padStart(2,'0'))}));
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month+1, 0);
+      const startIdx = (first.getDay()+6)%7;
+      const totalCells = startIdx + last.getDate();
+      const weeks = Math.ceil(totalCells/7);
+      document.getElementById('calTitle').textContent = now.toLocaleString('th-TH', {month:'long', year:'numeric'});
+      const cal = document.getElementById('calendar');
+      cal.innerHTML = '';
+      ['จ','อ','พ','พฤ','ศ','ส','อา'].forEach(d=>{
+        const cell = document.createElement('div'); cell.className='dow'; cell.textContent=d; cal.appendChild(cell);
+      });
+      for(let i=0;i<weeks*7;i++){
+        const cell = document.createElement('div'); cell.className='cell';
+        const dayNum = i-startIdx+1;
+        if(dayNum>=1 && dayNum<=last.getDate()){
+          const d = String(dayNum).padStart(2,'0');
+          cell.innerHTML = `<div class="text-[11px] text-slate-500">${dayNum}</div>`;
+          const todaysEvents = events.filter(ev => ev.date.endsWith('-'+d));
+          if(todaysEvents.length){
+            const list = document.createElement('div'); list.className='mt-1 space-y-1';
+            todaysEvents.forEach(ev => {
+              const color = ev.type==='PTO' ? '#a78bfa' : (ev.type==='Sick' ? '#ef4444' : '#0ea5e9');
+              const row = document.createElement('div'); row.className='flex items-center gap-1';
+              row.innerHTML = `<span class="dot" style="background:${color}"></span><span>${ev.who}</span>`;
+              list.appendChild(row);
+            });
+            cell.appendChild(list);
+          }
+        }
+        cal.appendChild(cell);
+      }
+    }
+
+    const listLeaveReq = document.getElementById('listLeaveReq');
+    function renderLeaveReq(){
+      listLeaveReq.innerHTML='';
+      leaveReqs.forEach(r=>{
+        const li = document.createElement('li');
+        const color = r.type==='PTO' ? 'bg-violet-100 text-violet-700' : (r.type==='Sick'?'bg-red-100 text-red-700':'bg-sky-100 text-sky-700');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div><div class="font-medium">${r.who}</div><div class="text-xs text-slate-500">${r.when}</div></div>
+          <div class="flex items-center gap-2">
+            <span class="pill ${color}">${r.type}</span>
+            <button class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs" data-view="lv">ดู</button>
+            <button class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs">อนุมัติ</button>
+            <button class="px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs">ตีกลับ</button>
+          </div>
+        </div>`;
+        listLeaveReq.appendChild(li);
+      });
+    }
+
+    function buildOT(){
+      return new Chart(document.getElementById('chartOT'),{
+        type:'bar',
+        data:{ labels: otSummary.map(x=>x.name), datasets:[{label:'OT (hrs)', data: otSummary.map(x=>x.hours), backgroundColor:'rgba(14,165,233,.6)'}] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    function renderAB(){
+      const list = document.getElementById('listAB'); list.innerHTML='';
+      anniversaries.forEach	a=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <div><div class="font-medium">${a.name}</div><div class="text-xs text-slate-500">${a.what}</div></div>
+          <span class="pill bg-slate-100 text-slate-700">${a.when}</span>
+        </div>`;
+        list.appendChild(li);
+      });
+    }
+
+    function buildAlloc(){
+      return new Chart(document.getElementById('chartAlloc'),{
+        type:'doughnut',
+        data:{ labels:['Allocated','On the Bench'], datasets:[{ data:[allocation.allocated, allocation.bench], backgroundColor:['#0ea5e9','#e2e8f0'] }] },
+        options:{ cutout:'70%', plugins:{legend:{position:'right'}} }
+      });
+    }
+    function renderAllocTable(){
+      const tb = document.getElementById('tblAlloc'); tb.innerHTML='';
+      allocation.people.forEach(p=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-2">${p.name}</td>
+                        <td class="py-2">${p.dept}</td>
+                        <td class="py-2 text-right">${p.pct}%</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function buildPayroll(){
+      document.getElementById('hrsReg').textContent = payroll.regular;
+      document.getElementById('hrsOT').textContent = payroll.ot;
+      document.getElementById('hrsLeave').textContent = payroll.leave;
+      return new Chart(document.getElementById('chartPayroll'),{
+        type:'bar',
+        data:{ labels:['Regular','OT','Leave'], datasets:[{ data:[payroll.regular,payroll.ot,payroll.leave], backgroundColor:['#0ea5e9','#22c55e','#f59e0b'] }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    document.getElementById('btn-export-csv').addEventListener('click', ()=>{
+      const rows = [
+        ['Category','Hours'],
+        ['Regular', payroll.regular],
+        ['OT', payroll.ot],
+        ['Leave', payroll.leave],
+      ];
+      const csv = rows.map(r=> r.join(',')).join('\\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'tprgs-payroll-summary.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    function renderChecklist(){
+      const ul = document.getElementById('listChecklist'); ul.innerHTML='';
+      let done = 0;
+      checklist.forEach((c,i)=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<label class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200">
+          <span>${c.text}</span>
+          <input type="checkbox" ${c.done?'checked':''} data-idx="${i}" class="w-4 h-4">
+        </label>`;
+        ul.appendChild(li);
+        if(c.done) done++;
+      });
+      const pct = Math.round((done/checklist.length)*100);
+      document.getElementById('chkProgress').style.width = pct+'%';
+    }
+    document.getElementById('listChecklist').addEventListener('change', e=>{
+      if(e.target.type==='checkbox'){
+        const idx = Number(e.target.getAttribute('data-idx'));
+        checklist[idx].done = e.target.checked;
+        let done = checklist.filter(x=>x.done).length;
+        const pct = Math.round((done/checklist.length)*100);
+        document.getElementById('chkProgress').style.width = pct+'%';
+      }
+    });
+
+    function buildUtilTrend(){
+      return new Chart(document.getElementById('chartUtil'),{
+        type:'line',
+        data:{ labels: utilTrend.labels, datasets:[{ label:'Utilization %', data: utilTrend.values, tension:.3, fill:false, borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.12)'}] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, suggestedMax:100}} }
+      });
+    }
+    function buildTurnover(){
+      return new Chart(document.getElementById('chartTurnover'),{
+        type:'bar',
+        data:{ labels: turnover.labels, datasets:[{ label:'# ลาออก', data: turnover.values, backgroundColor:'rgba(100,116,139,.6)'}] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, ticks:{ stepSize:1 }}} }
+      });
+    }
+
+    const tscChart = new Chart(document.getElementById('chartTSC'),{
+      type:'doughnut',
+      data:{ labels:['อนุมัติแล้ว','รออนุมัติ','ยังไม่ส่ง'], datasets:[{ data:[0,0,0], backgroundColor:['#22c55e','#f59e0b','#ef4444'] }] },
+      options:{ cutout:'70%', plugins:{legend:{display:false}} }
+    });
+
+    const otChart = buildOT();
+    const allocChart = buildAlloc();
+    const payrollChart = buildPayroll();
+    const utilChart = buildUtilTrend();
+    const turnoverChart = buildTurnover();
+
+    renderTSC();
+    buildMonthCalendar();
+    renderLeaveReq();
+    renderAB();
+    renderAllocTable();
+    renderChecklist();
+
+    const drawer = document.getElementById('drawer');
+    function openDrill(title, html){ document.getElementById('drawerTitle').textContent = title; document.getElementById('drawerBody').innerHTML = html; drawer.classList.remove('hidden'); }
+    function closeDrill(){ drawer.classList.add('hidden'); }
+    drawer.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeDrill));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrill(); });
+    document.querySelectorAll('[data-drill]').forEach(el=>{
+      el.addEventListener('click', e=>{
+        const key = e.currentTarget.getAttribute('data-drill');
+        if(key==='tsc') openDrill('Timesheet Compliance – รายละเอียด', '<div class="text-sm">ตารางรายละเอียดสถานะการส่ง/อนุมัติ รายแผนก/รายบุคคล (mock)</div>');
+        if(key==='leave') openDrill('Company Leave Calendar – ทั้งหมด', '<div class="text-sm">ปฏิทินรวมทั้งบริษัท พร้อมตัวกรองแผนก/ประเภทลา (mock)</div>');
+        if(key==='lvapp') openDrill('Leave Requests – รออนุมัติ', '<div class="text-sm">รายการคำขอลางานทั้งหมดที่รอตรวจสอบ (mock)</div>');
+        if(key==='ot') openDrill('OT Summary – เจาะลึก', '<div class="text-sm">สรุป OT รายคน • รายโครงการ • ตามนโยบาย (mock)</div>');
+        if(key==='onboard') openDrill('Onboarding', '<div class="text-sm">ฟอร์มเพิ่มพนักงานใหม่ + แนบเอกสาร + กำหนดสิทธิ์เริ่มต้น (mock)</div>');
+        if(key==='profiles') openDrill('Edit Profiles', '<div class="text-sm">แก้ไขตำแหน่ง/สังกัด/อัตราเงินเดือน (mock)</div>');
+        if(key==='offboard') openDrill('Offboarding', '<div class="text-sm">ระงับบัญชี • งานคืนทรัพย์สิน • ส่งต่องาน (mock)</div>');
+        if(key==='import') openDrill('Import/Export', '<div class="text-sm">อัปโหลด/ดาวน์โหลด CSV ของข้อมูลพนักงาน (mock)</div>');
+        if(key==='alloc') openDrill('Resource Allocation – รายละเอียด', '<div class="text-sm">ใครบน Bench / ใครเกิน 100% / ตัวกรองตามแผนก (mock)</div>');
+        if(key==='payroll') openDrill('Payroll Summary – เจาะลึก', '<div class="text-sm">ชั่วโมง Regular/OT/Leave ที่ Approved พร้อมไฟล์ export (mock)</div>');
+        if(key==='util') openDrill('Utilization Trend – รายละเอียด', '<div class="text-sm">แนวโน้ม Utilization รายเดือน/แผนก (mock)</div>');
+      });
+    });
+
+    document.getElementById('btn-export').addEventListener('click', async ()=>{
+      if(!window.html2canvas){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = doExport; document.body.appendChild(s);
+      } else { doExport(); }
+      async function doExport(){
+        const node = document.querySelector('main');
+        const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'tprgs-hr-dashboard.png'; a.click();
+      }
+    });
+  </script>
+</body>
+</html>
